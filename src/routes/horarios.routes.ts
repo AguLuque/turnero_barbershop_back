@@ -7,5 +7,7 @@ export const horariosRouter = Router();
 
 horariosRouter.use(requiereAutenticacion, requiereRol('admin', 'superadmin'));
 
-horariosRouter.post('/dia', manejarAsync(horariosController.configurarDia));
+horariosRouter.get('/dia', manejarAsync(horariosController.listarFranjasDelDia));
+horariosRouter.post('/dia', manejarAsync(horariosController.agregarFranjaHoraria));
+horariosRouter.delete('/dia/:idFranja', manejarAsync(horariosController.eliminarFranjaHoraria));
 horariosRouter.post('/bloqueo', manejarAsync(horariosController.crearBloqueo));

@@ -7,6 +7,12 @@ export const turnosRouter = Router();
 
 turnosRouter.post('/', requiereAutenticacion, manejarAsync(turnosController.reservar));
 turnosRouter.get('/mis-turnos', requiereAutenticacion, manejarAsync(turnosController.listarMisTurnos));
+turnosRouter.get(
+  '/admin',
+  requiereAutenticacion,
+  requiereRol('admin', 'superadmin'),
+  manejarAsync(turnosController.listarPorFecha)
+);
 turnosRouter.patch('/:idTurno/cancelar', requiereAutenticacion, manejarAsync(turnosController.cancelar));
 turnosRouter.patch(
   '/:idTurno/falto',

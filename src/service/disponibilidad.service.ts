@@ -35,8 +35,8 @@ export const disponibilidadService = {
   ): Promise<SlotDisponible[]> {
     const diaSemana = new Date(`${fecha}T00:00:00`).getDay();
 
-    const horarioAtencion = await horariosRepository.buscarHorarioAtencion(idPeluqueria, diaSemana);
-    if (!horarioAtencion) {
+    const franjasDelDia = await horariosRepository.buscarHorariosAtencion(idPeluqueria, diaSemana);
+    if (franjasDelDia.length === 0) {
       return []; // el peluquero no atiende ese dia de la semana
     }
 
@@ -47,10 +47,8 @@ export const disponibilidadService = {
 
     const horasOcupadas = new Set(turnosDelDia.map((turno) => turno.hora.slice(0, 5)));
 
-    const todasLasHoras = generarHorasEntreRango(
-      horarioAtencion.hora_inicio,
-      horarioAtencion.hora_fin,
-      duracionTurnoMinutos
+    const todasLasHoras = franjasDelDia.flatMap((franja) =>
+      generarHorasEntreRango(franja.hora_inicio, franja.hora_fin, duracionTurnoMinutos)
     );
 
     return todasLasHoras.map((hora) => {

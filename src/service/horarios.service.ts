@@ -9,9 +9,13 @@ function validarRangoHorario(horaInicio: string, horaFin: string): void {
 }
 
 export const horariosService = {
-  async configurarDia(datos: Omit<HorarioAtencion, 'id'>): Promise<HorarioAtencion> {
+  async agregarFranjaHoraria(datos: Omit<HorarioAtencion, 'id'>): Promise<HorarioAtencion> {
     validarRangoHorario(datos.hora_inicio, datos.hora_fin);
-    return horariosRepository.guardarHorarioAtencion(datos);
+    return horariosRepository.agregarFranjaHoraria(datos);
+  },
+
+  async eliminarFranjaHoraria(idFranja: string): Promise<void> {
+    return horariosRepository.eliminarFranjaHoraria(idFranja);
   },
 
   async crearBloqueo(datos: Omit<HorarioBloqueado, 'id'>): Promise<HorarioBloqueado> {
@@ -21,7 +25,7 @@ export const horariosService = {
     return horariosRepository.crearBloqueo(datos);
   },
 
-  async obtenerHorarioDelDia(idPeluqueria: string, diaSemana: number): Promise<HorarioAtencion | null> {
-    return horariosRepository.buscarHorarioAtencion(idPeluqueria, diaSemana);
+  async obtenerFranjasDelDia(idPeluqueria: string, diaSemana: number): Promise<HorarioAtencion[]> {
+    return horariosRepository.buscarHorariosAtencion(idPeluqueria, diaSemana);
   },
 };

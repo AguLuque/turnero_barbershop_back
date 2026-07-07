@@ -3,21 +3,38 @@ import { horariosService } from '../service/horarios.service';
 import { ErrorApi } from '../utils/errorApi';
 
 export const horariosController = {
-  async configurarDia(req: Request, res: Response): Promise<void> {
+  async agregarFranjaHoraria(req: Request, res: Response): Promise<void> {
     const { idPeluqueria, diaSemana, horaInicio, horaFin } = req.body;
 
     if (!idPeluqueria || diaSemana === undefined || !horaInicio || !horaFin) {
-      throw ErrorApi.solicitudInvalida('Faltan datos para configurar el horario');
+      throw ErrorApi.solicitudInvalida('Faltan datos para agregar la franja horaria');
     }
 
-    const horario = await horariosService.configurarDia({
+    const franja = await horariosService.agregarFranjaHoraria({
       id_peluqueria: idPeluqueria,
       dia_semana: diaSemana,
       hora_inicio: horaInicio,
       hora_fin: horaFin,
     });
 
-    res.status(201).json({ horario });
+    res.status(201).json({ franja });
+  },
+
+  async eliminarFranjaHoraria(req: Request, res: Response): Promise<void> {
+    const { idFranja } = req.params;
+    await horariosService.eliminarFranjaHoraria(idFranja);
+    res.status(204).send();
+  },
+
+  async listarFranjasDelDia(req: Request, res: Response): Promise<void> {
+    const { idPeluqueria, diaSemana } = req.query;
+
+    if (typeof idPeluqueria !== 'string' || diaSemana === undefined) {
+      throw ErrorApi.solicitudInvalida('idPeluqueria y diaSemana son requeridos');
+    }
+
+    const franjas = await horariosService.obtenerFranjasDelDia(idPeluqueria, Number(diaSemana));
+    res.json({ franjas });
   },
 
   async crearBloqueo(req: Request, res: Response): Promise<void> {

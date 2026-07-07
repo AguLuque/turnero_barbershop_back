@@ -31,6 +31,10 @@ export const turnosService = {
     return turnosRepository.buscarPorCliente(idCliente);
   },
 
+  async listarPorFecha(idPeluqueria: string, fecha: string): Promise<Turno[]> {
+    return turnosRepository.buscarPorPeluqueriaYFechaTodos(idPeluqueria, fecha);
+  },
+
   async cancelar(idTurno: string, perfilQueCancela: { id: string; rol: string }): Promise<Turno> {
     const turno = await turnosRepository.buscarPorId(idTurno);
     if (!turno) throw ErrorApi.noEncontrado('Turno no encontrado');

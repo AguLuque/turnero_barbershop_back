@@ -11,14 +11,16 @@ export const turnosController = {
       throw ErrorApi.solicitudInvalida('Faltan datos para reservar el turno');
     }
 
+    const esStaff = req.perfil?.rol === 'admin' || req.perfil?.rol === 'superadmin';
+
     const datos: NuevoTurnoInput = {
       id_peluqueria: idPeluqueria,
-      id_cliente: req.perfil?.id ?? null,
+      id_cliente: esStaff ? null : (req.perfil?.id ?? null),
       nombre_cliente: nombreCliente,
       telefono_cliente: telefonoCliente,
       fecha,
       hora,
-      creado_por: req.perfil?.rol === 'admin' || req.perfil?.rol === 'superadmin' ? 'admin' : 'cliente',
+      creado_por: esStaff ? 'admin' : 'cliente',
     };
 
     const turno = await turnosService.reservar(datos);
@@ -28,6 +30,15 @@ export const turnosController = {
   async listarMisTurnos(req: Request, res: Response): Promise<void> {
     if (!req.perfil) throw ErrorApi.noAutorizado();
     const turnos = await turnosService.listarPorCliente(req.perfil.id);
+    res.json({ turnos });
+  },
+
+  async listarPorFecha(req: Request, res: Response): Promise<void> {
+    const { fecha } = req.query;
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    if (typeof fecha !== 'string') throw ErrorApi.solicitudInvalida('fecha es requerida');
+
+    const turnos = await turnosService.listarPorFecha(req.perfil.id_peluqueria, fecha);
     res.json({ turnos });
   },
 

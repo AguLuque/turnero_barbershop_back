@@ -3,16 +3,16 @@ import { ErrorApi } from '../utils/errorApi';
 import { HorarioAtencion, HorarioBloqueado } from '../types/dominio.types';
 
 export const horariosRepository = {
-  async buscarHorarioAtencion(idPeluqueria: string, diaSemana: number): Promise<HorarioAtencion | null> {
+  async buscarHorariosAtencion(idPeluqueria: string, diaSemana: number): Promise<HorarioAtencion[]> {
     const { data, error } = await supabase
       .from('horarios_atencion')
       .select('*')
       .eq('id_peluqueria', idPeluqueria)
       .eq('dia_semana', diaSemana)
-      .maybeSingle();
+      .order('hora_inicio', { ascending: true });
 
     if (error) throw new ErrorApi(`Error al buscar horario de atencion: ${error.message}`);
-    return data as HorarioAtencion | null;
+    return data as HorarioAtencion[];
   },
 
   async buscarBloqueosPorFecha(idPeluqueria: string, fecha: string): Promise<HorarioBloqueado[]> {
@@ -37,14 +37,24 @@ export const horariosRepository = {
     return data as HorarioBloqueado;
   },
 
-  async guardarHorarioAtencion(horario: Omit<HorarioAtencion, 'id'>): Promise<HorarioAtencion> {
+  async agregarFranjaHoraria(horario: Omit<HorarioAtencion, 'id'>): Promise<HorarioAtencion> {
     const { data, error } = await supabase
       .from('horarios_atencion')
-      .upsert(horario, { onConflict: 'id_peluqueria,dia_semana' })
+      .insert(horario)
       .select('*')
       .single();
 
-    if (error) throw new ErrorApi(`Error al guardar el horario: ${error.message}`);
+    if (error) {
+      if (error.code === '23505') {
+        throw ErrorApi.conflicto('Esa franja horaria ya existe para ese dia');
+      }
+      throw new ErrorApi(`Error al guardar el horario: ${error.message}`);
+    }
     return data as HorarioAtencion;
+  },
+
+  async eliminarFranjaHoraria(idFranja: string): Promise<void> {
+    const { error } = await supabase.from('horarios_atencion').delete().eq('id', idFranja);
+    if (error) throw new ErrorApi(`Error al eliminar la franja horaria: ${error.message}`);
   },
 };
