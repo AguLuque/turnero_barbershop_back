@@ -4,15 +4,18 @@ import { ErrorApi } from '../utils/errorApi';
 
 export const turnosFijosController = {
   async crear(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria, idCliente, diaSemana, hora, frecuenciaDias, fechaInicio } = req.body;
+    const { idPeluqueria, nombreCliente, telefonoCliente, diaSemana, hora, frecuenciaDias, fechaInicio } =
+      req.body;
 
-    if (!idPeluqueria || !idCliente || diaSemana === undefined || !hora) {
+    if (!idPeluqueria || diaSemana === undefined || !hora || !nombreCliente?.trim()) {
       throw ErrorApi.solicitudInvalida('Faltan datos para crear el turno fijo');
     }
 
     const turnoFijo = await turnosFijosService.crear({
       id_peluqueria: idPeluqueria,
-      id_cliente: idCliente,
+      id_cliente: null,
+      nombre_cliente: nombreCliente.trim(),
+      telefono_cliente: telefonoCliente?.trim() || null,
       dia_semana: diaSemana,
       hora,
       frecuencia_dias: frecuenciaDias ?? 7,

@@ -29,7 +29,7 @@ export const turnosController = {
 
   async listarMisTurnos(req: Request, res: Response): Promise<void> {
     if (!req.perfil) throw ErrorApi.noAutorizado();
-    const turnos = await turnosService.listarPorCliente(req.perfil.id);
+    const turnos = await turnosService.listarPorCliente(req.perfil.id, req.perfil.id_peluqueria);
     res.json({ turnos });
   },
 

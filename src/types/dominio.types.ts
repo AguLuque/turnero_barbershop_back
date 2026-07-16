@@ -57,7 +57,9 @@ export interface Turno {
 export interface TurnoFijo {
   id: string;
   id_peluqueria: string;
-  id_cliente: string;
+  id_cliente: string | null;
+  nombre_cliente: string | null;
+  telefono_cliente: string | null;
   dia_semana: number;
   hora: string;
   frecuencia_dias: number;

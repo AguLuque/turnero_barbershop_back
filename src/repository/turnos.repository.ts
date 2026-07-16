@@ -50,6 +50,20 @@ export const turnosRepository = {
     return data as Turno[];
   },
 
+  async marcarVencidosComoCompletados(idPeluqueria: string): Promise<number> {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('turnos')
+      .update({ estado: 'completado' })
+      .eq('id_peluqueria', idPeluqueria)
+      .eq('estado', 'confirmado')
+      .lt('fecha', hoy)
+      .select('id');
+
+    if (error) throw new ErrorApi(`Error al marcar turnos vencidos: ${error.message}`);
+    return data?.length ?? 0;
+  },
+
   async buscarPorId(idTurno: string): Promise<Turno | null> {
     const { data, error } = await supabase.from('turnos').select('*').eq('id', idTurno).single();
 

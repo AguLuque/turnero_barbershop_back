@@ -32,7 +32,12 @@ export const turnosFijosRepository = {
       .select('*')
       .single();
 
-    if (error) throw new ErrorApi(`Error al crear el turno fijo: ${error.message}`);
+    if (error) {
+      if (error.code === '23505') {
+        throw ErrorApi.conflicto('Ya existe un turno fijo activo para ese día y horario');
+      }
+      throw new ErrorApi(`Error al crear el turno fijo: ${error.message}`);
+    }
     return data as TurnoFijo;
   },
 

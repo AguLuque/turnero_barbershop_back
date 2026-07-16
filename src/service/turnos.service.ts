@@ -27,7 +27,10 @@ export const turnosService = {
     return turnosRepository.crear(datos, peluqueria.precio_corte);
   },
 
-  async listarPorCliente(idCliente: string): Promise<Turno[]> {
+  async listarPorCliente(idCliente: string, idPeluqueria: string | null): Promise<Turno[]> {
+    if (idPeluqueria) {
+      await turnosRepository.marcarVencidosComoCompletados(idPeluqueria);
+    }
     return turnosRepository.buscarPorCliente(idCliente);
   },
 
