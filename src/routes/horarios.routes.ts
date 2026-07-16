@@ -11,3 +11,5 @@ horariosRouter.get('/dia', manejarAsync(horariosController.listarFranjasDelDia))
 horariosRouter.post('/dia', manejarAsync(horariosController.agregarFranjaHoraria));
 horariosRouter.delete('/dia/:idFranja', manejarAsync(horariosController.eliminarFranjaHoraria));
 horariosRouter.post('/bloqueo', manejarAsync(horariosController.crearBloqueo));
+horariosRouter.get('/bloqueo', manejarAsync(horariosController.listarBloqueos));
+horariosRouter.delete('/bloqueo/:idBloqueo', manejarAsync(horariosController.eliminarBloqueo));

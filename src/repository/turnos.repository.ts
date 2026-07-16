@@ -64,6 +64,31 @@ export const turnosRepository = {
     return data?.length ?? 0;
   },
 
+  async cancelarPorBloqueo(
+    idPeluqueria: string,
+    fecha: string,
+    horaInicio: string | null,
+    horaFin: string | null
+  ): Promise<number> {
+    let query = supabase
+      .from('turnos')
+      .update({ estado: 'cancelado' })
+      .eq('id_peluqueria', idPeluqueria)
+      .eq('fecha', fecha)
+      .eq('estado', 'confirmado');
+
+    // Si el bloqueo es de dia completo (sin horas), cancela todos los turnos del dia.
+    // Si el bloqueo es de un rango horario puntual, solo cancela los turnos dentro de ese rango.
+    if (horaInicio && horaFin) {
+      query = query.gte('hora', horaInicio).lt('hora', horaFin);
+    }
+
+    const { data, error } = await query.select('id');
+
+    if (error) throw new ErrorApi(`Error al cancelar turnos por bloqueo: ${error.message}`);
+    return data?.length ?? 0;
+  },
+
   async buscarPorId(idTurno: string): Promise<Turno | null> {
     const { data, error } = await supabase.from('turnos').select('*').eq('id', idTurno).single();
 

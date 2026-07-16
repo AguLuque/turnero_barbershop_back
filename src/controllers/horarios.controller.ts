@@ -23,7 +23,9 @@ export const horariosController = {
   async eliminarFranjaHoraria(req: Request, res: Response): Promise<void> {
     const { idFranja } = req.params;
     await horariosService.eliminarFranjaHoraria(idFranja);
-    res.status(204).send();
+    // Se responde 200 con JSON (en vez de 204 sin body) porque el cliente
+    // siempre intenta parsear la respuesta como JSON; un 204 sin body rompe ese parseo.
+    res.status(200).json({ eliminado: true });
   },
 
   async listarFranjasDelDia(req: Request, res: Response): Promise<void> {
@@ -44,7 +46,7 @@ export const horariosController = {
       throw ErrorApi.solicitudInvalida('Faltan datos para crear el bloqueo');
     }
 
-    const bloqueo = await horariosService.crearBloqueo({
+    const { bloqueo, turnosCancelados } = await horariosService.crearBloqueo({
       id_peluqueria: idPeluqueria,
       fecha,
       hora_inicio: horaInicio ?? null,
@@ -52,6 +54,22 @@ export const horariosController = {
       motivo: motivo ?? null,
     });
 
-    res.status(201).json({ bloqueo });
+    res.status(201).json({ bloqueo, turnosCancelados });
+  },
+
+  async listarBloqueos(req: Request, res: Response): Promise<void> {
+    const { idPeluqueria } = req.query;
+    if (typeof idPeluqueria !== 'string') {
+      throw ErrorApi.solicitudInvalida('idPeluqueria es requerido');
+    }
+
+    const bloqueos = await horariosService.listarBloqueos(idPeluqueria);
+    res.json({ bloqueos });
+  },
+
+  async eliminarBloqueo(req: Request, res: Response): Promise<void> {
+    const { idBloqueo } = req.params;
+    await horariosService.eliminarBloqueo(idBloqueo);
+    res.status(200).json({ eliminado: true });
   },
 };

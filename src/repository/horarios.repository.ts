@@ -37,6 +37,35 @@ export const horariosRepository = {
     return data as HorarioBloqueado;
   },
 
+  async buscarBloqueoPorId(idBloqueo: string): Promise<HorarioBloqueado | null> {
+    const { data, error } = await supabase
+      .from('horarios_bloqueados')
+      .select('*')
+      .eq('id', idBloqueo)
+      .single();
+
+    if (error) return null;
+    return data as HorarioBloqueado;
+  },
+
+  async listarBloqueosPorPeluqueria(idPeluqueria: string): Promise<HorarioBloqueado[]> {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabase
+      .from('horarios_bloqueados')
+      .select('*')
+      .eq('id_peluqueria', idPeluqueria)
+      .gte('fecha', hoy)
+      .order('fecha', { ascending: true });
+
+    if (error) throw new ErrorApi(`Error al listar bloqueos: ${error.message}`);
+    return data as HorarioBloqueado[];
+  },
+
+  async eliminarBloqueo(idBloqueo: string): Promise<void> {
+    const { error } = await supabase.from('horarios_bloqueados').delete().eq('id', idBloqueo);
+    if (error) throw new ErrorApi(`Error al eliminar el bloqueo: ${error.message}`);
+  },
+
   async agregarFranjaHoraria(horario: Omit<HorarioAtencion, 'id'>): Promise<HorarioAtencion> {
     const { data, error } = await supabase
       .from('horarios_atencion')
