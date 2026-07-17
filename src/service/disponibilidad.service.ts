@@ -1,5 +1,6 @@
 import { horariosRepository } from '../repository/horarios.repository';
 import { turnosRepository } from '../repository/turnos.repository';
+import { turnosFijosRepository } from '../repository/turnosfijos.repository';
 import { SlotDisponible } from '../types/dominio.types';
 
 function generarHorasEntreRango(horaInicio: string, horaFin: string, duracionMinutos: number): string[] {
@@ -40,12 +41,21 @@ export const disponibilidadService = {
       return []; // el peluquero no atiende ese dia de la semana
     }
 
-    const [bloqueos, turnosDelDia] = await Promise.all([
+    const [bloqueos, turnosDelDia, turnosFijos] = await Promise.all([
       horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha),
       turnosRepository.buscarPorPeluqueriaYFecha(idPeluqueria, fecha),
+      turnosFijosRepository.buscarPorPeluqueria(idPeluqueria),
     ]);
 
     const horasOcupadas = new Set(turnosDelDia.map((turno) => turno.hora.slice(0, 5)));
+
+    // Un turno fijo ocupa su horario todas las semanas que le correspondan,
+    // aunque el turno real de esa fecha puntual todavia no se haya generado.
+    const horasDeTurnosFijos = new Set(
+      turnosFijos
+        .filter((tf) => tf.dia_semana === diaSemana && tf.fecha_inicio <= fecha)
+        .map((tf) => tf.hora.slice(0, 5))
+    );
 
     const todasLasHoras = franjasDelDia.flatMap((franja) =>
       generarHorasEntreRango(franja.hora_inicio, franja.hora_fin, duracionTurnoMinutos)
@@ -55,7 +65,7 @@ export const disponibilidadService = {
       const bloqueada = bloqueos.some((bloqueo) =>
         estaDentroDeBloqueo(hora, bloqueo.hora_inicio, bloqueo.hora_fin)
       );
-      const ocupada = horasOcupadas.has(hora);
+      const ocupada = horasOcupadas.has(hora) || horasDeTurnosFijos.has(hora);
 
       return { hora, disponible: !bloqueada && !ocupada };
     });

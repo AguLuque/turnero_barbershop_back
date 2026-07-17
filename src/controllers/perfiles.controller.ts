@@ -28,7 +28,7 @@ export const perfilesController = {
       throw ErrorApi.solicitudInvalida('idPeluqueria es requerido');
     }
 
-    const clientes = await perfilesService.listarClientesConRanking(idPeluqueria);
+    const clientes = await perfilesService.listarClientesParaAdmin(idPeluqueria);
     res.json({ clientes });
   },
 };

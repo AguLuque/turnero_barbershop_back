@@ -88,3 +88,14 @@ export interface ClienteConRanking {
   perfil: Perfil;
   cantidadTurnos: number;
 }
+
+// Representa una fila del listado de "Clientes" en el admin, que combina
+// clientes registrados (con cuenta y ranking de turnos) y clientes que solo
+// tienen un turno fijo cargado por el admin, sin cuenta propia.
+export interface ClienteAdmin {
+  id: string;
+  nombre: string;
+  telefono: string | null;
+  esFijo: boolean;
+  cantidadTurnos: number;
+}

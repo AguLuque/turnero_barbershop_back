@@ -96,6 +96,18 @@ export const turnosRepository = {
     return data as Turno;
   },
 
+  async buscarPorTurnoFijoYFecha(idTurnoFijo: string, fecha: string): Promise<Turno | null> {
+    const { data, error } = await supabase
+      .from('turnos')
+      .select('*')
+      .eq('id_turno_fijo', idTurnoFijo)
+      .eq('fecha', fecha)
+      .maybeSingle();
+
+    if (error) throw new ErrorApi(`Error al buscar turno por regla fija y fecha: ${error.message}`);
+    return data as Turno | null;
+  },
+
   async buscarUltimoPorTurnoFijo(idTurnoFijo: string): Promise<Turno | null> {
     const { data, error } = await supabase
       .from('turnos')

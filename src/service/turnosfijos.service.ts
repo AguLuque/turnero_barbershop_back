@@ -24,6 +24,13 @@ function estaDentroDeLaVentana(fecha: string): boolean {
   return fecha >= hoy && fecha <= limite;
 }
 
+async function horaEstaBloqueada(idPeluqueria: string, fecha: string, hora: string): Promise<boolean> {
+  const bloqueos = await horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha);
+  return bloqueos.some(
+    (bloqueo) => !bloqueo.hora_inicio || (hora >= bloqueo.hora_inicio && hora < (bloqueo.hora_fin ?? '23:59'))
+  );
+}
+
 export const turnosFijosService = {
   async crear(datos: Omit<TurnoFijo, 'id' | 'activo' | 'creado_en'>): Promise<TurnoFijo> {
     if (!datos.id_cliente && !datos.nombre_cliente?.trim()) {
@@ -56,16 +63,8 @@ export const turnosFijosService = {
       const proximaFecha = calcularProximaFecha(regla, ultimoTurno?.fecha ?? null);
 
       if (!estaDentroDeLaVentana(proximaFecha)) continue;
+      if (await horaEstaBloqueada(idPeluqueria, proximaFecha, regla.hora)) continue;
 
-      const bloqueos = await horariosRepository.buscarBloqueosPorFecha(idPeluqueria, proximaFecha);
-      const horaBloqueada = bloqueos.some(
-        (bloqueo) =>
-          !bloqueo.hora_inicio || (regla.hora >= bloqueo.hora_inicio && regla.hora < (bloqueo.hora_fin ?? '23:59'))
-      );
-      if (horaBloqueada) continue;
-
-      // El turno fijo puede ser de un cliente con cuenta (id_cliente) o cargado
-      // directo por el admin con nombre/telefono, sin necesidad de que exista un perfil.
       await turnosRepository.crear(
         {
           id_peluqueria: idPeluqueria,
@@ -83,5 +82,54 @@ export const turnosFijosService = {
     }
 
     return generados;
+  },
+
+  // Se llama cada vez que se consulta una fecha puntual (ej: el admin navega a un dia
+  // futuro). Si ese dia le corresponde a alguna regla de turno fijo activa y todavia
+  // no existe el turno real para esa fecha, lo crea en el momento. Asi el admin siempre
+  // ve el turno con un id real (puede cancelarlo o marcarlo falto sin problema) y el
+  // horario queda automaticamente ocupado para los clientes.
+  async materializarParaFecha(idPeluqueria: string, fecha: string): Promise<void> {
+    const diaSemana = new Date(`${fecha}T00:00:00`).getDay();
+    const reglasActivas = await turnosFijosRepository.buscarPorPeluqueria(idPeluqueria);
+
+    const reglasDelDia = reglasActivas.filter(
+      (regla) => regla.dia_semana === diaSemana && regla.fecha_inicio <= fecha
+    );
+
+    if (reglasDelDia.length === 0) return;
+
+    const peluqueria = await peluqueriasRepository.buscarPorId(idPeluqueria);
+
+    for (const regla of reglasDelDia) {
+      const yaExiste = await turnosRepository.buscarPorTurnoFijoYFecha(regla.id, fecha);
+      if (yaExiste) continue;
+
+      if (await horaEstaBloqueada(idPeluqueria, fecha, regla.hora)) continue;
+
+      try {
+        await turnosRepository.crear(
+          {
+            id_peluqueria: idPeluqueria,
+            id_cliente: regla.id_cliente,
+            nombre_cliente: regla.nombre_cliente ?? 'Cliente turno fijo',
+            telefono_cliente: regla.telefono_cliente ?? undefined,
+            fecha,
+            hora: regla.hora,
+            creado_por: 'admin',
+            id_turno_fijo: regla.id,
+          },
+          peluqueria.precio_corte
+        );
+      } catch (error) {
+        // Si dos peticiones concurrentes (ej. Strict Mode del front, o dos pestañas)
+        // intentan materializar el mismo turno fijo al mismo tiempo, la primera gana
+        // y la segunda choca contra la constraint unica. Eso no es un error real para
+        // el usuario: el turno ya quedo creado, asi que simplemente lo ignoramos.
+        if (!(error instanceof ErrorApi && error.codigoEstado === 409)) {
+          throw error;
+        }
+      }
+    }
   },
 };
