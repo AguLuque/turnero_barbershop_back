@@ -3,6 +3,8 @@ import { turnosRepository } from '../repository/turnos.repository';
 import { horariosRepository } from '../repository/horarios.repository';
 import { peluqueriasRepository } from '../repository/peluquerias.repository';
 import { ErrorApi } from '../utils/errorApi';
+import { calcularPrimeraOcurrencia, correspondeSegunFrecuencia } from '../utils/frecuenciaTurnoFijo';
+import { obtenerFechaHoyArgentina } from '../utils/fechaHoraArgentina';
 import { TurnoFijo } from '../types/dominio.types';
 
 const DIAS_DE_ANTICIPACION = 14;
@@ -14,21 +16,30 @@ function sumarDias(fecha: string, dias: number): string {
 }
 
 function calcularProximaFecha(turnoFijo: TurnoFijo, ultimaFechaGenerada: string | null): string {
-  if (!ultimaFechaGenerada) return turnoFijo.fecha_inicio;
+  if (!ultimaFechaGenerada) {
+    return calcularPrimeraOcurrencia(turnoFijo.fecha_inicio, turnoFijo.dia_semana);
+  }
   return sumarDias(ultimaFechaGenerada, turnoFijo.frecuencia_dias);
 }
 
 function estaDentroDeLaVentana(fecha: string): boolean {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = obtenerFechaHoyArgentina();
   const limite = sumarDias(hoy, DIAS_DE_ANTICIPACION);
   return fecha >= hoy && fecha <= limite;
 }
 
+
 async function horaEstaBloqueada(idPeluqueria: string, fecha: string, hora: string): Promise<boolean> {
   const bloqueos = await horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha);
-  return bloqueos.some(
-    (bloqueo) => !bloqueo.hora_inicio || (hora >= bloqueo.hora_inicio && hora < (bloqueo.hora_fin ?? '23:59'))
-  );
+  return bloqueos.some((bloqueo) => {
+    if (!bloqueo.hora_inicio || !bloqueo.hora_fin) return true; // dia completo
+
+    const inicio = bloqueo.hora_inicio.slice(0, 5);
+    const fin = bloqueo.hora_fin.slice(0, 5);
+    const horaComparar = hora.slice(0, 5);
+
+    return horaComparar >= inicio && horaComparar < fin;
+  });
 }
 
 export const turnosFijosService = {
@@ -43,9 +54,13 @@ export const turnosFijosService = {
     return turnosFijosRepository.buscarPorPeluqueria(idPeluqueria);
   },
 
-  async darDeBaja(idTurnoFijo: string): Promise<TurnoFijo> {
+  async darDeBaja(idTurnoFijo: string, idPeluqueriaAdmin: string): Promise<TurnoFijo> {
     const turnoFijo = await turnosFijosRepository.buscarPorId(idTurnoFijo);
     if (!turnoFijo) throw ErrorApi.noEncontrado('Turno fijo no encontrado');
+
+    if (turnoFijo.id_peluqueria !== idPeluqueriaAdmin) {
+      throw ErrorApi.noAutorizado('No podes gestionar turnos fijos de otra peluqueria');
+    }
 
     return turnosFijosRepository.darDeBaja(idTurnoFijo);
   },
@@ -94,10 +109,11 @@ export const turnosFijosService = {
     const reglasActivas = await turnosFijosRepository.buscarPorPeluqueria(idPeluqueria);
 
     const reglasDelDia = reglasActivas.filter(
-      (regla) => regla.dia_semana === diaSemana && regla.fecha_inicio <= fecha
+      (regla) =>
+        regla.dia_semana === diaSemana &&
+        regla.fecha_inicio <= fecha &&
+        correspondeSegunFrecuencia(regla.fecha_inicio, regla.dia_semana, regla.frecuencia_dias, fecha)
     );
-
-    if (reglasDelDia.length === 0) return;
 
     const peluqueria = await peluqueriasRepository.buscarPorId(idPeluqueria);
 

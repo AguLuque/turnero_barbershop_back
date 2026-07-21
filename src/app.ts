@@ -20,6 +20,10 @@ app.use(cors({ origin: entorno.frontendUrl }));
 app.use(express.json());
 app.use(registroPeticiones);
 
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use('/api', rutasPrincipales);
 
 app.use(manejadorDeErrores);

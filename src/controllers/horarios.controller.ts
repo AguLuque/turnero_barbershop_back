@@ -4,14 +4,15 @@ import { ErrorApi } from '../utils/errorApi';
 
 export const horariosController = {
   async agregarFranjaHoraria(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria, diaSemana, horaInicio, horaFin } = req.body;
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const { diaSemana, horaInicio, horaFin } = req.body;
 
-    if (!idPeluqueria || diaSemana === undefined || !horaInicio || !horaFin) {
+    if (diaSemana === undefined || !horaInicio || !horaFin) {
       throw ErrorApi.solicitudInvalida('Faltan datos para agregar la franja horaria');
     }
 
     const franja = await horariosService.agregarFranjaHoraria({
-      id_peluqueria: idPeluqueria,
+      id_peluqueria: req.perfil.id_peluqueria,
       dia_semana: diaSemana,
       hora_inicio: horaInicio,
       hora_fin: horaFin,
@@ -21,33 +22,36 @@ export const horariosController = {
   },
 
   async eliminarFranjaHoraria(req: Request, res: Response): Promise<void> {
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
     const { idFranja } = req.params;
-    await horariosService.eliminarFranjaHoraria(idFranja);
+    await horariosService.eliminarFranjaHoraria(idFranja, req.perfil.id_peluqueria);
     // Se responde 200 con JSON (en vez de 204 sin body) porque el cliente
     // siempre intenta parsear la respuesta como JSON; un 204 sin body rompe ese parseo.
     res.status(200).json({ eliminado: true });
   },
 
   async listarFranjasDelDia(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria, diaSemana } = req.query;
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const { diaSemana } = req.query;
 
-    if (typeof idPeluqueria !== 'string' || diaSemana === undefined) {
-      throw ErrorApi.solicitudInvalida('idPeluqueria y diaSemana son requeridos');
+    if (diaSemana === undefined) {
+      throw ErrorApi.solicitudInvalida('diaSemana es requerido');
     }
 
-    const franjas = await horariosService.obtenerFranjasDelDia(idPeluqueria, Number(diaSemana));
+    const franjas = await horariosService.obtenerFranjasDelDia(req.perfil.id_peluqueria, Number(diaSemana));
     res.json({ franjas });
   },
 
   async crearBloqueo(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria, fecha, horaInicio, horaFin, motivo } = req.body;
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const { fecha, horaInicio, horaFin, motivo } = req.body;
 
-    if (!idPeluqueria || !fecha) {
+    if (!fecha) {
       throw ErrorApi.solicitudInvalida('Faltan datos para crear el bloqueo');
     }
 
     const { bloqueo, turnosCancelados } = await horariosService.crearBloqueo({
-      id_peluqueria: idPeluqueria,
+      id_peluqueria: req.perfil.id_peluqueria,
       fecha,
       hora_inicio: horaInicio ?? null,
       hora_fin: horaFin ?? null,
@@ -58,18 +62,15 @@ export const horariosController = {
   },
 
   async listarBloqueos(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria } = req.query;
-    if (typeof idPeluqueria !== 'string') {
-      throw ErrorApi.solicitudInvalida('idPeluqueria es requerido');
-    }
-
-    const bloqueos = await horariosService.listarBloqueos(idPeluqueria);
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const bloqueos = await horariosService.listarBloqueos(req.perfil.id_peluqueria);
     res.json({ bloqueos });
   },
 
   async eliminarBloqueo(req: Request, res: Response): Promise<void> {
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
     const { idBloqueo } = req.params;
-    await horariosService.eliminarBloqueo(idBloqueo);
+    await horariosService.eliminarBloqueo(idBloqueo, req.perfil.id_peluqueria);
     res.status(200).json({ eliminado: true });
   },
 };

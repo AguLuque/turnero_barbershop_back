@@ -45,13 +45,32 @@ export const turnosController = {
   async cancelar(req: Request, res: Response): Promise<void> {
     if (!req.perfil) throw ErrorApi.noAutorizado();
     const { idTurno } = req.params;
-    const turno = await turnosService.cancelar(idTurno, { id: req.perfil.id, rol: req.perfil.rol });
+    const turno = await turnosService.cancelar(idTurno, {
+      id: req.perfil.id,
+      rol: req.perfil.rol,
+      id_peluqueria: req.perfil.id_peluqueria,
+    });
     res.json({ turno });
   },
 
   async marcarFalto(req: Request, res: Response): Promise<void> {
+    if (!req.perfil) throw ErrorApi.noAutorizado();
     const { idTurno } = req.params;
-    const turno = await turnosService.marcarFalto(idTurno);
+    const turno = await turnosService.marcarFalto(idTurno, req.perfil.id_peluqueria);
     res.json({ turno });
   },
+
+  async listarHistorialParaAdmin(req: Request, res: Response): Promise<void> {
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const { idCliente, nombreCliente, telefonoCliente } = req.query;
+
+    const turnos = await turnosService.listarHistorialParaAdmin(
+      req.perfil.id_peluqueria,
+      typeof idCliente === 'string' ? idCliente : null,
+      typeof nombreCliente === 'string' ? nombreCliente : null,
+      typeof telefonoCliente === 'string' ? telefonoCliente : null
+    );
+    res.json({ turnos });
+  },
+
 };

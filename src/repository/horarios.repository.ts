@@ -82,6 +82,17 @@ export const horariosRepository = {
     return data as HorarioAtencion;
   },
 
+  async buscarFranjaPorId(idFranja: string): Promise<HorarioAtencion | null> {
+    const { data, error } = await supabase
+      .from('horarios_atencion')
+      .select('*')
+      .eq('id', idFranja)
+      .single();
+
+    if (error) return null;
+    return data as HorarioAtencion;
+  },
+
   async eliminarFranjaHoraria(idFranja: string): Promise<void> {
     const { error } = await supabase.from('horarios_atencion').delete().eq('id', idFranja);
     if (error) throw new ErrorApi(`Error al eliminar la franja horaria: ${error.message}`);

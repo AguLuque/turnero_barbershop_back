@@ -1,6 +1,7 @@
 import { supabase } from '../config/db.config';
 import { ErrorApi } from '../utils/errorApi';
 import { NuevoTurnoInput, Turno } from '../types/dominio.types';
+import { obtenerFechaHoyArgentina } from '../utils/fechaHoraArgentina';
 
 export const turnosRepository = {
   async buscarPorPeluqueriaYFecha(idPeluqueria: string, fecha: string): Promise<Turno[]> {
@@ -20,6 +21,19 @@ export const turnosRepository = {
       .from('turnos')
       .select('*')
       .eq('id_cliente', idCliente)
+      .order('fecha', { ascending: false })
+      .order('hora', { ascending: false });
+
+    if (error) throw new ErrorApi(`Error al buscar turnos del cliente: ${error.message}`);
+    return data as Turno[];
+  },
+
+  async buscarPorClienteYPeluqueria(idCliente: string, idPeluqueria: string): Promise<Turno[]> {
+    const { data, error } = await supabase
+      .from('turnos')
+      .select('*')
+      .eq('id_cliente', idCliente)
+      .eq('id_peluqueria', idPeluqueria)
       .order('fecha', { ascending: false })
       .order('hora', { ascending: false });
 
@@ -51,7 +65,7 @@ export const turnosRepository = {
   },
 
   async marcarVencidosComoCompletados(idPeluqueria: string): Promise<number> {
-    const hoy = new Date().toISOString().slice(0, 10);
+    const hoy = obtenerFechaHoyArgentina();
     const { data, error } = await supabase
       .from('turnos')
       .update({ estado: 'completado' })
@@ -152,4 +166,28 @@ export const turnosRepository = {
     if (error) throw new ErrorApi(`Error al actualizar el turno: ${error.message}`);
     return data as Turno;
   },
+
+  // Para clientes que solo tienen turnos fijos cargados por el admin, sin cuenta
+  // (id_cliente null): se busca su historial por nombre + telefono exactos.
+  async buscarPorNombreYTelefono(
+    idPeluqueria: string,
+    nombreCliente: string,
+    telefonoCliente: string | null
+  ): Promise<Turno[]> {
+    let query = supabase
+      .from('turnos')
+      .select('*')
+      .eq('id_peluqueria', idPeluqueria)
+      .eq('nombre_cliente', nombreCliente)
+      .order('fecha', { ascending: false })
+      .order('hora', { ascending: false });
+
+    query = telefonoCliente ? query.eq('telefono_cliente', telefonoCliente) : query.is('telefono_cliente', null);
+
+    const { data, error } = await query;
+
+    if (error) throw new ErrorApi(`Error al buscar turnos del cliente: ${error.message}`);
+    return data as Turno[];
+  },
+
 };

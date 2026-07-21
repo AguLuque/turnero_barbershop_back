@@ -20,3 +20,9 @@ turnosRouter.patch(
   requiereRol('admin', 'superadmin'),
   manejarAsync(turnosController.marcarFalto)
 );
+turnosRouter.get(
+  '/admin/historial',
+  requiereAutenticacion,
+  requiereRol('admin', 'superadmin'),
+  manejarAsync(turnosController.listarHistorialParaAdmin)
+);

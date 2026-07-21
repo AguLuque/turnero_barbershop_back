@@ -15,7 +15,14 @@ export const horariosService = {
     return horariosRepository.agregarFranjaHoraria(datos);
   },
 
-  async eliminarFranjaHoraria(idFranja: string): Promise<void> {
+  async eliminarFranjaHoraria(idFranja: string, idPeluqueriaAdmin: string): Promise<void> {
+    const franja = await horariosRepository.buscarFranjaPorId(idFranja);
+    if (!franja) throw ErrorApi.noEncontrado('Franja horaria no encontrada');
+
+    if (franja.id_peluqueria !== idPeluqueriaAdmin) {
+      throw ErrorApi.noAutorizado('No podes gestionar horarios de otra peluqueria');
+    }
+
     return horariosRepository.eliminarFranjaHoraria(idFranja);
   },
 
@@ -44,9 +51,13 @@ export const horariosService = {
     return horariosRepository.listarBloqueosPorPeluqueria(idPeluqueria);
   },
 
-  async eliminarBloqueo(idBloqueo: string): Promise<void> {
+  async eliminarBloqueo(idBloqueo: string, idPeluqueriaAdmin: string): Promise<void> {
     const bloqueo = await horariosRepository.buscarBloqueoPorId(idBloqueo);
     if (!bloqueo) throw ErrorApi.noEncontrado('Bloqueo no encontrado');
+
+    if (bloqueo.id_peluqueria !== idPeluqueriaAdmin) {
+      throw ErrorApi.noAutorizado('No podes gestionar bloqueos de otra peluqueria');
+    }
 
     return horariosRepository.eliminarBloqueo(idBloqueo);
   },

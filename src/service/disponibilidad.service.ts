@@ -1,6 +1,8 @@
 import { horariosRepository } from '../repository/horarios.repository';
 import { turnosRepository } from '../repository/turnos.repository';
 import { turnosFijosRepository } from '../repository/turnosfijos.repository';
+import { correspondeSegunFrecuencia } from '../utils/frecuenciaTurnoFijo';
+import { obtenerFechaHoyArgentina, sumarMinutosAHoraActual } from '../utils/fechaHoraArgentina';
 import { SlotDisponible } from '../types/dominio.types';
 
 function generarHorasEntreRango(horaInicio: string, horaFin: string, duracionMinutos: number): string[] {
@@ -11,7 +13,7 @@ function generarHorasEntreRango(horaInicio: string, horaFin: string, duracionMin
   let minutosActuales = horaIni * 60 + minIni;
   const minutosFin = horaFinN * 60 + minFinN;
 
-  while (minutosActuales < minutosFin) {
+  while (minutosActuales <= minutosFin) {
     const h = Math.floor(minutosActuales / 60)
       .toString()
       .padStart(2, '0');
@@ -25,7 +27,23 @@ function generarHorasEntreRango(horaInicio: string, horaFin: string, duracionMin
 
 function estaDentroDeBloqueo(hora: string, horaInicioBloqueo: string | null, horaFinBloqueo: string | null): boolean {
   if (!horaInicioBloqueo || !horaFinBloqueo) return true; // bloqueo de dia completo
-  return hora >= horaInicioBloqueo && hora < horaFinBloqueo;
+  const inicio = horaInicioBloqueo.slice(0, 5);
+  const fin = horaFinBloqueo.slice(0, 5);
+  return hora >= inicio && hora < fin;
+}
+
+function pad(numero: number): string {
+  return numero.toString().padStart(2, '0');
+}
+
+function obtenerFechaYHoraLimite(margenMinutos: number): { fecha: string; horaLimite: string } {
+  const ahora = new Date();
+  const conMargen = new Date(ahora.getTime() + margenMinutos * 60000);
+
+  const fecha = `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}`;
+  const horaLimite = `${pad(conMargen.getHours())}:${pad(conMargen.getMinutes())}`;
+
+  return { fecha, horaLimite };
 }
 
 export const disponibilidadService = {
@@ -38,24 +56,40 @@ export const disponibilidadService = {
 
     const franjasDelDia = await horariosRepository.buscarHorariosAtencion(idPeluqueria, diaSemana);
     if (franjasDelDia.length === 0) {
-      return []; // el peluquero no atiende ese dia de la semana
+      return [];
     }
 
-    const [bloqueos, turnosDelDia, turnosFijos] = await Promise.all([
+    const [bloqueos, turnosDelDiaTodos, turnosFijos] = await Promise.all([
       horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha),
-      turnosRepository.buscarPorPeluqueriaYFecha(idPeluqueria, fecha),
+      turnosRepository.buscarPorPeluqueriaYFechaTodos(idPeluqueria, fecha),
       turnosFijosRepository.buscarPorPeluqueria(idPeluqueria),
     ]);
 
-    const horasOcupadas = new Set(turnosDelDia.map((turno) => turno.hora.slice(0, 5)));
+    const horasOcupadas = new Set(
+      turnosDelDiaTodos.filter((t) => t.estado !== 'cancelado').map((t) => t.hora.slice(0, 5))
+    );
 
-    // Un turno fijo ocupa su horario todas las semanas que le correspondan,
-    // aunque el turno real de esa fecha puntual todavia no se haya generado.
+    const idsTurnoFijoCanceladosEstaFecha = new Set(
+      turnosDelDiaTodos
+        .filter((t) => t.id_turno_fijo && t.estado === 'cancelado')
+        .map((t) => t.id_turno_fijo as string)
+    );
+
     const horasDeTurnosFijos = new Set(
       turnosFijos
-        .filter((tf) => tf.dia_semana === diaSemana && tf.fecha_inicio <= fecha)
+        .filter(
+          (tf) =>
+            tf.dia_semana === diaSemana &&
+            tf.fecha_inicio <= fecha &&
+            correspondeSegunFrecuencia(tf.fecha_inicio, tf.dia_semana, tf.frecuencia_dias, fecha) &&
+            !idsTurnoFijoCanceladosEstaFecha.has(tf.id)
+        )
         .map((tf) => tf.hora.slice(0, 5))
     );
+
+    const hoy = obtenerFechaHoyArgentina();
+    const horaLimite = sumarMinutosAHoraActual(5);
+    const esHoy = fecha === hoy;
 
     const todasLasHoras = franjasDelDia.flatMap((franja) =>
       generarHorasEntreRango(franja.hora_inicio, franja.hora_fin, duracionTurnoMinutos)
@@ -66,8 +100,9 @@ export const disponibilidadService = {
         estaDentroDeBloqueo(hora, bloqueo.hora_inicio, bloqueo.hora_fin)
       );
       const ocupada = horasOcupadas.has(hora) || horasDeTurnosFijos.has(hora);
+      const yaPaso = esHoy && hora < horaLimite;
 
-      return { hora, disponible: !bloqueada && !ocupada };
+      return { hora, disponible: !bloqueada && !ocupada && !yaPaso };
     });
   },
 };

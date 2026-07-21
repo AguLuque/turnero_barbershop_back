@@ -23,12 +23,8 @@ export const perfilesController = {
   },
 
   async listarClientes(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria } = req.query;
-    if (typeof idPeluqueria !== 'string') {
-      throw ErrorApi.solicitudInvalida('idPeluqueria es requerido');
-    }
-
-    const clientes = await perfilesService.listarClientesParaAdmin(idPeluqueria);
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const clientes = await perfilesService.listarClientesParaAdmin(req.perfil.id_peluqueria);
     res.json({ clientes });
   },
 };

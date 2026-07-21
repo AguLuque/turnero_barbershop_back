@@ -4,15 +4,15 @@ import { ErrorApi } from '../utils/errorApi';
 
 export const turnosFijosController = {
   async crear(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria, nombreCliente, telefonoCliente, diaSemana, hora, frecuenciaDias, fechaInicio } =
-      req.body;
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const { nombreCliente, telefonoCliente, diaSemana, hora, frecuenciaDias, fechaInicio } = req.body;
 
-    if (!idPeluqueria || diaSemana === undefined || !hora || !nombreCliente?.trim()) {
+    if (diaSemana === undefined || !hora || !nombreCliente?.trim()) {
       throw ErrorApi.solicitudInvalida('Faltan datos para crear el turno fijo');
     }
 
     const turnoFijo = await turnosFijosService.crear({
-      id_peluqueria: idPeluqueria,
+      id_peluqueria: req.perfil.id_peluqueria,
       id_cliente: null,
       nombre_cliente: nombreCliente.trim(),
       telefono_cliente: telefonoCliente?.trim() || null,
@@ -26,26 +26,23 @@ export const turnosFijosController = {
   },
 
   async listar(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria } = req.query;
-    if (typeof idPeluqueria !== 'string') {
-      throw ErrorApi.solicitudInvalida('idPeluqueria es requerido');
-    }
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
 
-    const turnosFijos = await turnosFijosService.listarPorPeluqueria(idPeluqueria);
+    const turnosFijos = await turnosFijosService.listarPorPeluqueria(req.perfil.id_peluqueria);
     res.json({ turnosFijos });
   },
 
   async darDeBaja(req: Request, res: Response): Promise<void> {
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
     const { idTurnoFijo } = req.params;
-    const turnoFijo = await turnosFijosService.darDeBaja(idTurnoFijo);
+    const turnoFijo = await turnosFijosService.darDeBaja(idTurnoFijo, req.perfil.id_peluqueria);
     res.json({ turnoFijo });
   },
 
   async generarProximos(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria } = req.body;
-    if (!idPeluqueria) throw ErrorApi.solicitudInvalida('idPeluqueria es requerido');
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
 
-    const cantidadGenerados = await turnosFijosService.generarProximosTurnos(idPeluqueria);
+    const cantidadGenerados = await turnosFijosService.generarProximosTurnos(req.perfil.id_peluqueria);
     res.json({ cantidadGenerados });
   },
 };
