@@ -1,7 +1,7 @@
 import { supabase } from '../config/db.config';
 import { ErrorApi } from '../utils/errorApi';
 import { NuevoTurnoInput, Turno } from '../types/dominio.types';
-import { obtenerFechaHoyArgentina } from '../utils/fechaHoraArgentina';
+import { obtenerFechaHoyArgentina, obtenerHoraActualArgentina } from '../utils/fechaHoraArgentina';
 
 export const turnosRepository = {
   async buscarPorPeluqueriaYFecha(idPeluqueria: string, fecha: string): Promise<Turno[]> {
@@ -64,15 +64,24 @@ export const turnosRepository = {
     return data as Turno[];
   },
 
-  async marcarVencidosComoCompletados(idPeluqueria: string): Promise<number> {
+  // Completa automaticamente cualquier turno confirmado cuya fecha+hora ya haya
+  // pasado (dia anterior, o mismo dia con hora ya transcurrida). Sin idPeluqueria
+  // corre sobre todas las peluquerias (uso desde el cron periodico).
+  async marcarVencidosComoCompletados(idPeluqueria?: string): Promise<number> {
     const hoy = obtenerFechaHoyArgentina();
-    const { data, error } = await supabase
+    const horaActual = obtenerHoraActualArgentina();
+
+    let query = supabase
       .from('turnos')
       .update({ estado: 'completado' })
-      .eq('id_peluqueria', idPeluqueria)
       .eq('estado', 'confirmado')
-      .lt('fecha', hoy)
-      .select('id');
+      .or(`fecha.lt.${hoy},and(fecha.eq.${hoy},hora.lte.${horaActual})`);
+
+    if (idPeluqueria) {
+      query = query.eq('id_peluqueria', idPeluqueria);
+    }
+
+    const { data, error } = await query.select('id');
 
     if (error) throw new ErrorApi(`Error al marcar turnos vencidos: ${error.message}`);
     return data?.length ?? 0;

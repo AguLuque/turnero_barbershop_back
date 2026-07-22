@@ -2,12 +2,19 @@ import { turnosRepository } from '../repository/turnos.repository';
 import { peluqueriasRepository } from '../repository/peluquerias.repository';
 import { disponibilidadService } from './disponibilidad.service';
 import { turnosFijosService } from './turnosfijos.service';
-import { obtenerFechaHoyArgentina } from '../utils/fechaHoraArgentina';
+import { obtenerFechaHoyArgentina, obtenerHoraActualArgentina } from '../utils/fechaHoraArgentina';
 import { ErrorApi } from '../utils/errorApi';
 import { NuevoTurnoInput, Turno } from '../types/dominio.types';
 
 function esHoy(fecha: string): boolean {
   return fecha === obtenerFechaHoyArgentina();
+}
+
+function yaOcurrio(fecha: string, hora: string): boolean {
+  const hoy = obtenerFechaHoyArgentina();
+  if (fecha < hoy) return true;
+  if (fecha > hoy) return false;
+  return hora.slice(0, 5) <= obtenerHoraActualArgentina();
 }
 
 export const turnosService = {
@@ -57,6 +64,10 @@ export const turnosService = {
       throw ErrorApi.noAutorizado('No podes cancelar un turno que no es tuyo');
     }
 
+    if (yaOcurrio(turno.fecha, turno.hora)) {
+      throw ErrorApi.solicitudInvalida('No se puede cancelar un turno que ya ocurrió');
+    }
+
     if (turno.estado !== 'confirmado') {
       throw ErrorApi.solicitudInvalida('Solo se pueden cancelar turnos confirmados');
     }
@@ -83,6 +94,13 @@ export const turnosService = {
     }
 
     return turnosRepository.actualizarEstado(idTurno, 'falto');
+  },
+
+  // Pensado para llamarse desde un intervalo periodico del proceso (no hay
+  // infraestructura de cron externo): completa en toda la base cualquier turno
+  // confirmado cuya fecha+hora ya paso, sin tocar turnos cancelados o faltados.
+  async autoCompletarVencidos(): Promise<number> {
+    return turnosRepository.marcarVencidosComoCompletados();
   },
 
   async listarHistorialParaAdmin(
