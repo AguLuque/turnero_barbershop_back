@@ -47,6 +47,15 @@ export const turnosFijosService = {
     if (!datos.id_cliente && !datos.nombre_cliente?.trim()) {
       throw ErrorApi.solicitudInvalida('Falta el nombre del cliente para el turno fijo');
     }
+
+    const franjasDelDia = await horariosRepository.buscarHorariosAtencion(datos.id_peluqueria, datos.dia_semana);
+    const horaValida = franjasDelDia.some(
+      (f) => datos.hora >= f.hora_inicio.slice(0, 5) && datos.hora <= f.hora_fin.slice(0, 5)
+    );
+    if (!horaValida) {
+      throw ErrorApi.solicitudInvalida('Ese horario no existe dentro de la franja de atencion de ese dia');
+    }
+
     return turnosFijosRepository.crear(datos);
   },
 
