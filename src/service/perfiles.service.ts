@@ -16,6 +16,11 @@ export const perfilesService = {
     if (Object.keys(cambios).length === 0) {
       throw ErrorApi.solicitudInvalida('No se enviaron datos para actualizar');
     }
+
+    if (cambios.telefono && !/^\d+$/.test(cambios.telefono)) {
+      throw ErrorApi.solicitudInvalida('El teléfono solo puede contener números');
+    }
+
     return perfilesRepository.actualizar(idPerfil, cambios);
   },
 

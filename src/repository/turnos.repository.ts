@@ -199,4 +199,17 @@ export const turnosRepository = {
     return data as Turno[];
   },
 
+  async cancelarFuturosPorTurnoFijo(idTurnoFijo: string, hoy: string): Promise<number> {
+    const { data, error } = await supabase
+      .from('turnos')
+      .update({ estado: 'cancelado' })
+      .eq('id_turno_fijo', idTurnoFijo)
+      .eq('estado', 'confirmado')
+      .gte('fecha', hoy)
+      .select('id');
+
+    if (error) throw new ErrorApi(`Error al cancelar turnos del turno fijo: ${error.message}`);
+    return data?.length ?? 0;
+  },
+
 };

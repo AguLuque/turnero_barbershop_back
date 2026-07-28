@@ -4,6 +4,7 @@ import { disponibilidadRouter } from './routes/disponibilidad.routes';
 import { turnosFijosRouter } from './routes/turnosfijos.routes';
 import { horariosRouter } from './routes/horarios.routes';
 import { perfilesRouter } from './routes/perfiles.routes';
+import { peluqueriasRouter } from './routes/peluquerias.routes';
 
 export const rutasPrincipales = Router();
 
@@ -12,3 +13,4 @@ rutasPrincipales.use('/disponibilidad', disponibilidadRouter);
 rutasPrincipales.use('/turnos-fijos', turnosFijosRouter);
 rutasPrincipales.use('/horarios', horariosRouter);
 rutasPrincipales.use('/perfiles', perfilesRouter);
+rutasPrincipales.use('/peluquerias', peluqueriasRouter);

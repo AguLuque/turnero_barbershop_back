@@ -63,15 +63,18 @@ export const turnosFijosService = {
     return turnosFijosRepository.buscarPorPeluqueria(idPeluqueria);
   },
 
-  async darDeBaja(idTurnoFijo: string, idPeluqueriaAdmin: string): Promise<TurnoFijo> {
+  async darDeBaja(idTurnoFijo: string): Promise<TurnoFijo> {
     const turnoFijo = await turnosFijosRepository.buscarPorId(idTurnoFijo);
     if (!turnoFijo) throw ErrorApi.noEncontrado('Turno fijo no encontrado');
 
-    if (turnoFijo.id_peluqueria !== idPeluqueriaAdmin) {
-      throw ErrorApi.noAutorizado('No podes gestionar turnos fijos de otra peluqueria');
-    }
+    const resultado = await turnosFijosRepository.darDeBaja(idTurnoFijo);
 
-    return turnosFijosRepository.darDeBaja(idTurnoFijo);
+    // Al dar de baja la regla, tambien hay que liberar los turnos futuros que
+    // ya se habian materializado en base a ella (sino quedan "fantasma"
+    // ocupando el horario aunque el cliente fijo ya no va a venir mas).
+    await turnosRepository.cancelarFuturosPorTurnoFijo(idTurnoFijo, obtenerFechaHoyArgentina());
+
+    return resultado;
   },
 
   // Genera el proximo turno real de cada regla activa, si entra en la ventana de anticipacion

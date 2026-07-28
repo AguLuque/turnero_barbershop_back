@@ -54,16 +54,16 @@ export const disponibilidadService = {
   ): Promise<SlotDisponible[]> {
     const diaSemana = new Date(`${fecha}T00:00:00`).getDay();
 
-    const franjasDelDia = await horariosRepository.buscarHorariosAtencion(idPeluqueria, diaSemana);
-    if (franjasDelDia.length === 0) {
-      return [];
-    }
-
-    const [bloqueos, turnosDelDiaTodos, turnosFijos] = await Promise.all([
+    const [franjasDelDia, bloqueos, turnosDelDiaTodos, turnosFijos] = await Promise.all([
+      horariosRepository.buscarHorariosAtencion(idPeluqueria, diaSemana),
       horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha),
       turnosRepository.buscarPorPeluqueriaYFechaTodos(idPeluqueria, fecha),
       turnosFijosRepository.buscarPorPeluqueria(idPeluqueria),
     ]);
+
+    if (franjasDelDia.length === 0) {
+      return [];
+    }
 
     const horasOcupadas = new Set(
       turnosDelDiaTodos.filter((t) => t.estado !== 'cancelado').map((t) => t.hora.slice(0, 5))
