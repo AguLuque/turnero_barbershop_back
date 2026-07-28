@@ -22,12 +22,9 @@ export const horariosController = {
   },
 
   async eliminarFranjaHoraria(req: Request, res: Response): Promise<void> {
-    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
     const { idFranja } = req.params;
-    await horariosService.eliminarFranjaHoraria(idFranja, req.perfil.id_peluqueria);
-    // Se responde 200 con JSON (en vez de 204 sin body) porque el cliente
-    // siempre intenta parsear la respuesta como JSON; un 204 sin body rompe ese parseo.
-    res.status(200).json({ eliminado: true });
+    const { turnosCancelados } = await horariosService.eliminarFranjaHoraria(idFranja);
+    res.json({ eliminado: true, turnosCancelados });
   },
 
   async listarFranjasDelDia(req: Request, res: Response): Promise<void> {

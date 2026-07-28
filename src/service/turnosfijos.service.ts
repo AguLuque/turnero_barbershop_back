@@ -63,9 +63,11 @@ export const turnosFijosService = {
     return turnosFijosRepository.buscarPorPeluqueria(idPeluqueria);
   },
 
-  async darDeBaja(idTurnoFijo: string): Promise<TurnoFijo> {
+  async darDeBaja(idTurnoFijo: string, idPeluqueria: string): Promise<TurnoFijo> {
     const turnoFijo = await turnosFijosRepository.buscarPorId(idTurnoFijo);
-    if (!turnoFijo) throw ErrorApi.noEncontrado('Turno fijo no encontrado');
+    if (!turnoFijo || turnoFijo.id_peluqueria !== idPeluqueria) {
+      throw ErrorApi.noEncontrado('Turno fijo no encontrado');
+    }
 
     const resultado = await turnosFijosRepository.darDeBaja(idTurnoFijo);
 

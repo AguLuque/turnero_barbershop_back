@@ -2,6 +2,7 @@ import { horariosRepository } from '../repository/horarios.repository';
 import { turnosRepository } from '../repository/turnos.repository';
 import { ErrorApi } from '../utils/errorApi';
 import { HorarioAtencion, HorarioBloqueado } from '../types/dominio.types';
+import { obtenerFechaHoyArgentina } from '../utils/fechaHoraArgentina';
 
 function validarRangoHorario(horaInicio: string, horaFin: string): void {
   if (horaInicio >= horaFin) {
@@ -15,15 +16,21 @@ export const horariosService = {
     return horariosRepository.agregarFranjaHoraria(datos);
   },
 
-  async eliminarFranjaHoraria(idFranja: string, idPeluqueriaAdmin: string): Promise<void> {
+  async eliminarFranjaHoraria(idFranja: string): Promise<{ turnosCancelados: number }> {
     const franja = await horariosRepository.buscarFranjaPorId(idFranja);
     if (!franja) throw ErrorApi.noEncontrado('Franja horaria no encontrada');
 
-    if (franja.id_peluqueria !== idPeluqueriaAdmin) {
-      throw ErrorApi.noAutorizado('No podes gestionar horarios de otra peluqueria');
-    }
+    await horariosRepository.eliminarFranjaHoraria(idFranja);
 
-    return horariosRepository.eliminarFranjaHoraria(idFranja);
+    const turnosCancelados = await turnosRepository.cancelarPorFranjaEliminada(
+      franja.id_peluqueria,
+      franja.dia_semana,
+      franja.hora_inicio.slice(0, 5),
+      franja.hora_fin.slice(0, 5),
+      obtenerFechaHoyArgentina()
+    );
+
+    return { turnosCancelados };
   },
 
   // Al bloquear un dia (o rango horario), cancela automaticamente los turnos

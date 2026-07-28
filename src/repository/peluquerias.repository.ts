@@ -25,4 +25,16 @@ export const peluqueriasRepository = {
     if (error || !data) throw ErrorApi.noEncontrado('Peluqueria no encontrada');
     return data as Peluqueria;
   },
+
+  async actualizarDuracion(idPeluqueria: string, duracionMinutos: number): Promise<Peluqueria> {
+    const { data, error } = await supabase
+      .from('peluquerias')
+      .update({ duracion_turno_minutos: duracionMinutos })
+      .eq('id', idPeluqueria)
+      .select('*')
+      .single();
+
+    if (error || !data) throw ErrorApi.noEncontrado('Peluqueria no encontrada');
+    return data as Peluqueria;
+  },
 };

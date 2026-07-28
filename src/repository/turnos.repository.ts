@@ -212,4 +212,44 @@ export const turnosRepository = {
     return data?.length ?? 0;
   },
 
+  // Cancela los turnos confirmados de un dia de la semana especifico (en fechas futuras,
+  // incluyendo hoy) que caigan dentro de un rango horario dado. Se usa cuando se elimina
+  // una franja de atencion, para no dejar turnos "fantasma" en un horario que ya no existe.
+  async cancelarPorFranjaEliminada(
+    idPeluqueria: string,
+    diaSemana: number,
+    horaInicio: string,
+    horaFin: string,
+    hoy: string
+  ): Promise<number> {
+    // Traemos los turnos confirmados desde hoy en adelante, y filtramos en memoria
+    // por dia de la semana (Supabase no tiene una forma directa de filtrar por
+    // dia-de-semana de una columna date sin una funcion SQL propia).
+    const { data, error } = await supabase
+      .from('turnos')
+      .select('*')
+      .eq('id_peluqueria', idPeluqueria)
+      .eq('estado', 'confirmado')
+      .gte('fecha', hoy);
+
+    if (error) throw new ErrorApi(`Error al buscar turnos para cancelar: ${error.message}`);
+
+    const turnosAfectados = (data as Turno[]).filter((turno) => {
+      const diaDelTurno = new Date(`${turno.fecha}T00:00:00`).getDay();
+      const horaTurno = turno.hora.slice(0, 5);
+      return diaDelTurno === diaSemana && horaTurno >= horaInicio && horaTurno < horaFin;
+    });
+
+    if (turnosAfectados.length === 0) return 0;
+
+    const idsACancelar = turnosAfectados.map((t) => t.id);
+    const { error: errorUpdate } = await supabase
+      .from('turnos')
+      .update({ estado: 'cancelado' })
+      .in('id', idsACancelar);
+
+    if (errorUpdate) throw new ErrorApi(`Error al cancelar turnos: ${errorUpdate.message}`);
+    return idsACancelar.length;
+  },
+
 };
