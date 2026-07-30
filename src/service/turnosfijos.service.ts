@@ -63,6 +63,18 @@ export const turnosFijosService = {
     return turnosFijosRepository.buscarPorPeluqueria(idPeluqueria);
   },
 
+  // Se usa al armar la grilla de horarios para un turno fijo nuevo: el dia de
+  // la semana de una regla es el mismo sin importar su frecuencia (7/14/21/30
+  // dias), asi que alcanza con filtrar por dia_semana para saber que horarios
+  // ya tienen un turno fijo activo, igual que hace la constraint unica de la
+  // base al crear.
+  async obtenerHorasOcupadasDelDia(idPeluqueria: string, diaSemana: number): Promise<string[]> {
+    const reglasActivas = await turnosFijosRepository.buscarPorPeluqueria(idPeluqueria);
+    return reglasActivas
+      .filter((regla) => regla.dia_semana === diaSemana)
+      .map((regla) => regla.hora.slice(0, 5));
+  },
+
   async darDeBaja(idTurnoFijo: string, idPeluqueria: string): Promise<TurnoFijo> {
     const turnoFijo = await turnosFijosRepository.buscarPorId(idTurnoFijo);
     if (!turnoFijo || turnoFijo.id_peluqueria !== idPeluqueria) {

@@ -9,5 +9,6 @@ turnosFijosRouter.use(requiereAutenticacion, requiereRol('admin', 'superadmin'))
 
 turnosFijosRouter.post('/', manejarAsync(turnosFijosController.crear));
 turnosFijosRouter.get('/', manejarAsync(turnosFijosController.listar));
+turnosFijosRouter.get('/horarios-ocupados', manejarAsync(turnosFijosController.horariosOcupadosDelDia));
 turnosFijosRouter.patch('/:idTurnoFijo/baja', manejarAsync(turnosFijosController.darDeBaja));
 turnosFijosRouter.post('/generar-proximos', manejarAsync(turnosFijosController.generarProximos));

@@ -32,6 +32,21 @@ export const turnosFijosController = {
     res.json({ turnosFijos });
   },
 
+  async horariosOcupadosDelDia(req: Request, res: Response): Promise<void> {
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const { diaSemana } = req.query;
+
+    if (diaSemana === undefined) {
+      throw ErrorApi.solicitudInvalida('diaSemana es requerido');
+    }
+
+    const horasOcupadas = await turnosFijosService.obtenerHorasOcupadasDelDia(
+      req.perfil.id_peluqueria,
+      Number(diaSemana)
+    );
+    res.json({ horasOcupadas });
+  },
+
   async darDeBaja(req: Request, res: Response): Promise<void> {
     if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
     const { idTurnoFijo } = req.params;
