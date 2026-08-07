@@ -5,6 +5,7 @@ import { peluqueriasRepository } from '../repository/peluquerias.repository';
 import { ErrorApi } from '../utils/errorApi';
 import { calcularPrimeraOcurrencia, correspondeSegunFrecuencia } from '../utils/frecuenciaTurnoFijo';
 import { obtenerFechaHoyArgentina } from '../utils/fechaHoraArgentina';
+import { estaHoraDentroDeBloqueo, obtenerHoraCierreDelDia } from '../utils/bloqueoHorario';
 import { TurnoFijo } from '../types/dominio.types';
 
 const DIAS_DE_ANTICIPACION = 14;
@@ -30,16 +31,13 @@ function estaDentroDeLaVentana(fecha: string): boolean {
 
 
 async function horaEstaBloqueada(idPeluqueria: string, fecha: string, hora: string): Promise<boolean> {
-  const bloqueos = await horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha);
-  return bloqueos.some((bloqueo) => {
-    if (!bloqueo.hora_inicio || !bloqueo.hora_fin) return true; // dia completo
-
-    const inicio = bloqueo.hora_inicio.slice(0, 5);
-    const fin = bloqueo.hora_fin.slice(0, 5);
-    const horaComparar = hora.slice(0, 5);
-
-    return horaComparar >= inicio && horaComparar < fin;
-  });
+  const diaSemana = new Date(`${fecha}T00:00:00`).getDay();
+  const [bloqueos, franjasDelDia] = await Promise.all([
+    horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha),
+    horariosRepository.buscarHorariosAtencion(idPeluqueria, diaSemana),
+  ]);
+  const horaCierreDelDia = obtenerHoraCierreDelDia(franjasDelDia);
+  return bloqueos.some((bloqueo) => estaHoraDentroDeBloqueo(hora, bloqueo, horaCierreDelDia));
 }
 
 export const turnosFijosService = {

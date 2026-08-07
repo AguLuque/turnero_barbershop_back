@@ -32,6 +32,19 @@ export const turnosService = {
       throw ErrorApi.conflicto('Ese horario ya no esta disponible');
     }
 
+    if (datos.creado_por === 'cliente' && datos.id_cliente) {
+      const yaCancelado = await turnosRepository.existeCanceladoDeClienteEnFechaHora(
+        datos.id_cliente,
+        datos.fecha,
+        datos.hora
+      );
+      if (yaCancelado) {
+        throw ErrorApi.conflicto(
+          'Ya cancelaste este turno anteriormente. Para volver a reservarlo, comunicate directamente con el peluquero.'
+        );
+      }
+    }
+
     return turnosRepository.crear(datos, peluqueria.precio_corte);
   },
 
@@ -87,6 +100,10 @@ export const turnosService = {
     const hoy = obtenerFechaHoyArgentina();
     if (turno.fecha > hoy) {
       throw ErrorApi.solicitudInvalida('No se puede marcar falto a un turno que todavía no ocurrió');
+    }
+
+    if (turno.fecha === hoy && turno.hora.slice(0, 5) > obtenerHoraActualArgentina()) {
+      throw ErrorApi.solicitudInvalida('No se puede marcar falto a un turno que todavía no llegó su horario');
     }
 
     if (turno.estado !== 'confirmado') {

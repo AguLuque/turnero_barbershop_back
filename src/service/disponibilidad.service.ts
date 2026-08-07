@@ -3,6 +3,7 @@ import { turnosRepository } from '../repository/turnos.repository';
 import { turnosFijosRepository } from '../repository/turnosfijos.repository';
 import { correspondeSegunFrecuencia } from '../utils/frecuenciaTurnoFijo';
 import { obtenerFechaHoyArgentina, sumarMinutosAHoraActual } from '../utils/fechaHoraArgentina';
+import { estaHoraDentroDeBloqueo, obtenerHoraCierreDelDia } from '../utils/bloqueoHorario';
 import { SlotDisponible } from '../types/dominio.types';
 
 export interface AvisoOrdenLlegada {
@@ -28,13 +29,6 @@ function generarHorasEntreRango(horaInicio: string, horaFin: string, duracionMin
   }
 
   return horas;
-}
-
-function estaDentroDeBloqueo(hora: string, horaInicioBloqueo: string | null, horaFinBloqueo: string | null): boolean {
-  if (!horaInicioBloqueo || !horaFinBloqueo) return true; // bloqueo de dia completo
-  const inicio = horaInicioBloqueo.slice(0, 5);
-  const fin = horaFinBloqueo.slice(0, 5);
-  return hora >= inicio && hora < fin;
 }
 
 function pad(numero: number): string {
@@ -95,15 +89,14 @@ export const disponibilidadService = {
     const hoy = obtenerFechaHoyArgentina();
     const horaLimite = sumarMinutosAHoraActual(5);
     const esHoy = fecha === hoy;
+    const horaCierreDelDia = obtenerHoraCierreDelDia(franjasDelDia);
 
     const todasLasHoras = franjasDelDia.flatMap((franja) =>
       generarHorasEntreRango(franja.hora_inicio, franja.hora_fin, duracionTurnoMinutos)
     );
 
     return todasLasHoras.map((hora) => {
-      const bloqueada = bloqueos.some((bloqueo) =>
-        estaDentroDeBloqueo(hora, bloqueo.hora_inicio, bloqueo.hora_fin)
-      );
+      const bloqueada = bloqueos.some((bloqueo) => estaHoraDentroDeBloqueo(hora, bloqueo, horaCierreDelDia));
       const ocupada = horasOcupadas.has(hora) || horasDeTurnosFijos.has(hora);
       const yaPaso = esHoy && hora < horaLimite;
 

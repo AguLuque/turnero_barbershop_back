@@ -284,4 +284,19 @@ export const turnosRepository = {
     const { error } = await supabase.from('turnos').update({ recordatorio_enviado: true }).eq('id', idTurno);
     if (error) throw new ErrorApi(`Error al marcar el recordatorio como enviado: ${error.message}`);
   },
+
+  async existeCanceladoDeClienteEnFechaHora(idCliente: string, fecha: string, hora: string): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('turnos')
+      .select('id')
+      .eq('id_cliente', idCliente)
+      .eq('fecha', fecha)
+      .eq('hora', hora)
+      .eq('estado', 'cancelado')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new ErrorApi(`Error al verificar cancelaciones previas: ${error.message}`);
+    return data !== null;
+  },
 };
