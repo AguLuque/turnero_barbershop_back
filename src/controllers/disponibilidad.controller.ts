@@ -12,12 +12,11 @@ export const disponibilidadController = {
     }
 
     const peluqueria = await peluqueriasRepository.buscarPorId(idPeluqueria);
-    const slots = await disponibilidadService.calcularSlotsDelDia(
-      idPeluqueria,
-      fecha,
-      peluqueria.duracion_turno_minutos
-    );
+    const [slots, avisoOrdenLlegada] = await Promise.all([
+      disponibilidadService.calcularSlotsDelDia(idPeluqueria, fecha, peluqueria.duracion_turno_minutos),
+      disponibilidadService.obtenerAvisoOrdenLlegada(idPeluqueria, fecha),
+    ]);
 
-    res.json({ slots });
+    res.json({ slots, avisoOrdenLlegada });
   },
 };

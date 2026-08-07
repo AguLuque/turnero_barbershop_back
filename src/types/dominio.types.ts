@@ -8,6 +8,10 @@ export interface Peluqueria {
   id_dueño: string | null;
   duracion_turno_minutos: number;
   precio_corte: number;
+  direccion: string | null;
+  telefono_contacto: string | null;
+  instagram: string | null;
+  bio_peluquero: string | null;
   creado_en: string;
 }
 
@@ -36,6 +40,7 @@ export interface HorarioBloqueado {
   hora_inicio: string | null;
   hora_fin: string | null;
   motivo: string | null;
+  tipo: 'bloqueado' | 'orden_llegada';
 }
 
 export interface Turno {
@@ -51,6 +56,7 @@ export interface Turno {
   creado_por: CreadoPor;
   id_turno_fijo: string | null;
   se_aplico_recargo_cancelacion: boolean;
+  recordatorio_enviado: boolean;
   creado_en: string;
 }
 
@@ -98,4 +104,13 @@ export interface ClienteAdmin {
   telefono: string | null;
   esFijo: boolean;
   cantidadTurnos: number;
+}
+
+export interface SuscripcionPush {
+  id: string;
+  id_perfil: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  creado_en: string;
 }

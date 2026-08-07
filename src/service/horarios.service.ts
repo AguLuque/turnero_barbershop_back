@@ -36,20 +36,28 @@ export const horariosService = {
   // Al bloquear un dia (o rango horario), cancela automaticamente los turnos
   // confirmados que caigan dentro de ese bloqueo, para que el cliente vea el
   // cambio reflejado en "Mis turnos" y no vaya a un horario donde no van a atenderlo.
+  // Excepcion: si el bloqueo es de tipo 'orden_llegada', los turnos ya reservados
+  // en ese rango NO se cancelan (se sigue atendiendo por orden de llegada ademas
+  // de los turnos ya agendados).
   async crearBloqueo(
-    datos: Omit<HorarioBloqueado, 'id'>
+    datos: Omit<HorarioBloqueado, 'id' | 'tipo'> & { tipo?: HorarioBloqueado['tipo'] }
   ): Promise<{ bloqueo: HorarioBloqueado; turnosCancelados: number }> {
     if (datos.hora_inicio && datos.hora_fin) {
       validarRangoHorario(datos.hora_inicio, datos.hora_fin);
     }
 
-    const bloqueo = await horariosRepository.crearBloqueo(datos);
-    const turnosCancelados = await turnosRepository.cancelarPorBloqueo(
-      datos.id_peluqueria,
-      datos.fecha,
-      datos.hora_inicio,
-      datos.hora_fin
-    );
+    const tipo = datos.tipo ?? 'bloqueado';
+    const bloqueo = await horariosRepository.crearBloqueo({ ...datos, tipo });
+
+    const turnosCancelados =
+      tipo === 'orden_llegada'
+        ? 0
+        : await turnosRepository.cancelarPorBloqueo(
+            datos.id_peluqueria,
+            datos.fecha,
+            datos.hora_inicio,
+            datos.hora_fin
+          );
 
     return { bloqueo, turnosCancelados };
   },

@@ -5,6 +5,11 @@ import { correspondeSegunFrecuencia } from '../utils/frecuenciaTurnoFijo';
 import { obtenerFechaHoyArgentina, sumarMinutosAHoraActual } from '../utils/fechaHoraArgentina';
 import { SlotDisponible } from '../types/dominio.types';
 
+export interface AvisoOrdenLlegada {
+  horaInicio: string;
+  horaFin: string;
+}
+
 function generarHorasEntreRango(horaInicio: string, horaFin: string, duracionMinutos: number): string[] {
   const horas: string[] = [];
   const [horaIni, minIni] = horaInicio.split(':').map(Number);
@@ -104,5 +109,23 @@ export const disponibilidadService = {
 
       return { hora, disponible: !bloqueada && !ocupada && !yaPaso };
     });
+  },
+
+  // Busca si hay algun bloqueo de tipo 'orden_llegada' para la fecha, para avisarle
+  // al cliente que en ese rango se atiende por orden de llegada ademas de los turnos
+  // ya agendados. Si hay mas de uno, combina el rango mas amplio entre todos.
+  async obtenerAvisoOrdenLlegada(idPeluqueria: string, fecha: string): Promise<AvisoOrdenLlegada | null> {
+    const bloqueos = await horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha);
+    const bloqueosOrdenLlegada = bloqueos.filter((bloqueo) => bloqueo.tipo === 'orden_llegada');
+
+    if (bloqueosOrdenLlegada.length === 0) return null;
+
+    const inicios = bloqueosOrdenLlegada.map((b) => (b.hora_inicio ?? '00:00').slice(0, 5)).sort();
+    const fines = bloqueosOrdenLlegada.map((b) => (b.hora_fin ?? '23:59').slice(0, 5)).sort();
+
+    return {
+      horaInicio: inicios[0],
+      horaFin: fines[fines.length - 1],
+    };
   },
 };

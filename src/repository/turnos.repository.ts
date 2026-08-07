@@ -252,4 +252,36 @@ export const turnosRepository = {
     return idsACancelar.length;
   },
 
+  // Busca turnos confirmados, con cuenta de cliente y sin recordatorio enviado
+  // todavia, cuya fecha+hora caiga dentro de la ventana [desde, hasta]. Se usa
+  // desde el job de recordatorios (la ventana normalmente es "dentro de 55 a 65
+  // minutos"). Contempla el caso raro en que la ventana cruce la medianoche.
+  async buscarPendientesDeRecordatorio(
+    desde: { fecha: string; hora: string },
+    hasta: { fecha: string; hora: string }
+  ): Promise<Turno[]> {
+    let query = supabase
+      .from('turnos')
+      .select('*')
+      .eq('estado', 'confirmado')
+      .eq('recordatorio_enviado', false)
+      .not('id_cliente', 'is', null);
+
+    if (desde.fecha === hasta.fecha) {
+      query = query.eq('fecha', desde.fecha).gte('hora', desde.hora).lte('hora', hasta.hora);
+    } else {
+      query = query.or(
+        `and(fecha.eq.${desde.fecha},hora.gte.${desde.hora}),and(fecha.eq.${hasta.fecha},hora.lte.${hasta.hora})`
+      );
+    }
+
+    const { data, error } = await query;
+    if (error) throw new ErrorApi(`Error al buscar turnos pendientes de recordatorio: ${error.message}`);
+    return data as Turno[];
+  },
+
+  async marcarRecordatorioEnviado(idTurno: string): Promise<void> {
+    const { error } = await supabase.from('turnos').update({ recordatorio_enviado: true }).eq('id', idTurno);
+    if (error) throw new ErrorApi(`Error al marcar el recordatorio como enviado: ${error.message}`);
+  },
 };

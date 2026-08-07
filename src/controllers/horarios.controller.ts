@@ -41,10 +41,14 @@ export const horariosController = {
 
   async crearBloqueo(req: Request, res: Response): Promise<void> {
     if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
-    const { fecha, horaInicio, horaFin, motivo } = req.body;
+    const { fecha, horaInicio, horaFin, motivo, tipo } = req.body;
 
     if (!fecha) {
       throw ErrorApi.solicitudInvalida('Faltan datos para crear el bloqueo');
+    }
+
+    if (tipo !== undefined && tipo !== 'bloqueado' && tipo !== 'orden_llegada') {
+      throw ErrorApi.solicitudInvalida("El tipo de bloqueo debe ser 'bloqueado' u 'orden_llegada'");
     }
 
     const { bloqueo, turnosCancelados } = await horariosService.crearBloqueo({
@@ -53,6 +57,7 @@ export const horariosController = {
       hora_inicio: horaInicio ?? null,
       hora_fin: horaFin ?? null,
       motivo: motivo ?? null,
+      tipo,
     });
 
     res.status(201).json({ bloqueo, turnosCancelados });

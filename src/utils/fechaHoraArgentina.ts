@@ -51,3 +51,21 @@ export function sumarMinutosAHoraActual(minutos: number): string {
   const m = fechaBase.getMinutes().toString().padStart(2, '0');
   return `${h}:${m}`;
 }
+
+// Suma minutos al momento actual (en Argentina) y devuelve fecha y hora del
+// resultado por separado, ya cruzando de dia si corresponde (a diferencia de
+// sumarMinutosAHoraActual, que recorta a "23:59" del mismo dia). Se usa para
+// calcular ventanas de tiempo futuras, como la del job de recordatorios de turno.
+export function obtenerFechaHoraConMargen(minutos: number): { fecha: string; hora: string } {
+  const p = obtenerPartes();
+  const fechaBase = new Date(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:00`);
+  fechaBase.setMinutes(fechaBase.getMinutes() + minutos);
+
+  const anio = fechaBase.getFullYear().toString();
+  const mes = (fechaBase.getMonth() + 1).toString().padStart(2, '0');
+  const dia = fechaBase.getDate().toString().padStart(2, '0');
+  const h = fechaBase.getHours().toString().padStart(2, '0');
+  const m = fechaBase.getMinutes().toString().padStart(2, '0');
+
+  return { fecha: `${anio}-${mes}-${dia}`, hora: `${h}:${m}` };
+}
