@@ -28,7 +28,16 @@ export const perfilesService = {
   // 1. Clientes con cuenta registrada, ordenados por cantidad de turnos.
   // 2. Clientes que solo tienen un turno fijo cargado por el admin (sin cuenta),
   //    que se muestran con la etiqueta "Cliente fijo" en vez de un contador de turnos.
-  async listarClientesParaAdmin(idPeluqueria: string): Promise<ClienteAdmin[]> {
+  //
+  // limit/offset paginan sobre la lista ya combinada y ordenada (el orden por
+  // cantidadTurnos define el numero de posicion que se muestra en el admin, asi
+  // que tiene que aplicarse antes de paginar). Si ninguno de los dos se manda,
+  // se devuelve la lista completa como antes, para no romper otros consumidores
+  // que todavia no pasan estos parametros (ej. la app Android).
+  async listarClientesParaAdmin(
+    idPeluqueria: string,
+    opciones: { limit?: number; offset?: number; busqueda?: string } = {}
+  ): Promise<{ clientes: ClienteAdmin[]; total: number }> {
     const [perfilesClientes, turnos, turnosFijosActivos] = await Promise.all([
       perfilesRepository.buscarPorPeluqueria(idPeluqueria),
       turnosRepository.buscarTodosPorPeluqueria(idPeluqueria),
@@ -74,6 +83,22 @@ export const perfilesService = {
       }
     }
 
-    return [...registrados, ...fijosSinCuentaPorClave.values()];
+    const combinados = [...registrados, ...fijosSinCuentaPorClave.values()];
+
+    const filtrados = opciones.busqueda
+      ? combinados.filter((cliente) => cliente.nombre.toLowerCase().includes(opciones.busqueda!.toLowerCase()))
+      : combinados;
+
+    if (opciones.limit === undefined && opciones.offset === undefined) {
+      return { clientes: filtrados, total: filtrados.length };
+    }
+
+    const limit = opciones.limit ?? 10;
+    const offset = opciones.offset ?? 0;
+
+    return {
+      clientes: filtrados.slice(offset, offset + limit),
+      total: filtrados.length,
+    };
   },
 };

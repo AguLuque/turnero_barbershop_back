@@ -24,7 +24,14 @@ export const perfilesController = {
 
   async listarClientes(req: Request, res: Response): Promise<void> {
     if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
-    const clientes = await perfilesService.listarClientesParaAdmin(req.perfil.id_peluqueria);
-    res.json({ clientes });
+    const { limit, offset, busqueda } = req.query;
+
+    const resultado = await perfilesService.listarClientesParaAdmin(req.perfil.id_peluqueria, {
+      limit: limit !== undefined ? Number(limit) : undefined,
+      offset: offset !== undefined ? Number(offset) : undefined,
+      busqueda: typeof busqueda === 'string' ? busqueda : undefined,
+    });
+
+    res.json(resultado);
   },
 };

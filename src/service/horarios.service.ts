@@ -62,8 +62,27 @@ export const horariosService = {
     return { bloqueo, turnosCancelados };
   },
 
-  async listarBloqueos(idPeluqueria: string): Promise<HorarioBloqueado[]> {
-    return horariosRepository.listarBloqueosPorPeluqueria(idPeluqueria);
+  // limit/offset paginan sobre la lista ya ordenada (proximos primero, pasados
+  // despues). Si ninguno de los dos se manda, se devuelve la lista completa
+  // como antes, para no romper otros consumidores que todavia no pasan estos
+  // parametros (ej. la app Android).
+  async listarBloqueos(
+    idPeluqueria: string,
+    opciones: { limit?: number; offset?: number } = {}
+  ): Promise<{ bloqueos: HorarioBloqueado[]; total: number }> {
+    const todos = await horariosRepository.listarBloqueosPorPeluqueria(idPeluqueria);
+
+    if (opciones.limit === undefined && opciones.offset === undefined) {
+      return { bloqueos: todos, total: todos.length };
+    }
+
+    const limit = opciones.limit ?? 10;
+    const offset = opciones.offset ?? 0;
+
+    return {
+      bloqueos: todos.slice(offset, offset + limit),
+      total: todos.length,
+    };
   },
 
   async eliminarBloqueo(idBloqueo: string, idPeluqueriaAdmin: string): Promise<void> {

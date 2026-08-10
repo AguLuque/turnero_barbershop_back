@@ -65,8 +65,14 @@ export const horariosController = {
 
   async listarBloqueos(req: Request, res: Response): Promise<void> {
     if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
-    const bloqueos = await horariosService.listarBloqueos(req.perfil.id_peluqueria);
-    res.json({ bloqueos });
+    const { limit, offset } = req.query;
+
+    const resultado = await horariosService.listarBloqueos(req.perfil.id_peluqueria, {
+      limit: limit !== undefined ? Number(limit) : undefined,
+      offset: offset !== undefined ? Number(offset) : undefined,
+    });
+
+    res.json(resultado);
   },
 
   async eliminarBloqueo(req: Request, res: Response): Promise<void> {
