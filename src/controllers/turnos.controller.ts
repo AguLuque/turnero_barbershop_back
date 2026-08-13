@@ -6,15 +6,18 @@ import { NuevoTurnoInput } from '../types/dominio.types';
 export const turnosController = {
   async reservar(req: Request, res: Response): Promise<void> {
     const { idPeluqueria, fecha, hora, nombreCliente, telefonoCliente } = req.body;
+    const esStaff = req.perfil?.rol === 'admin' || req.perfil?.rol === 'superadmin';
 
-    if (!idPeluqueria || !fecha || !hora || !nombreCliente) {
+    if (esStaff && !req.perfil?.id_peluqueria) {
+      throw ErrorApi.noAutorizado();
+    }
+
+    if ((!esStaff && !idPeluqueria) || !fecha || !hora || !nombreCliente) {
       throw ErrorApi.solicitudInvalida('Faltan datos para reservar el turno');
     }
 
-    const esStaff = req.perfil?.rol === 'admin' || req.perfil?.rol === 'superadmin';
-
     const datos: NuevoTurnoInput = {
-      id_peluqueria: idPeluqueria,
+      id_peluqueria: esStaff ? req.perfil!.id_peluqueria! : idPeluqueria,
       id_cliente: esStaff ? null : (req.perfil?.id ?? null),
       nombre_cliente: nombreCliente,
       telefono_cliente: telefonoCliente,

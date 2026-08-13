@@ -33,6 +33,7 @@ app.use((_req, res, next) => {
 });
 
 app.use(cors({ origin: entorno.frontendUrl }));
+app.use(helmet());
 app.use(express.json());
 app.use(registroPeticiones);
 
@@ -40,10 +41,8 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+app.use('/api', limitadorGeneral);
+app.use('/api/turnos', limitadorReservas);
 app.use('/api', rutasPrincipales);
 
 app.use(manejadorDeErrores);
-
-app.use('/api', limitadorGeneral);
-app.use('/api/turnos', limitadorReservas);
-app.use(helmet());

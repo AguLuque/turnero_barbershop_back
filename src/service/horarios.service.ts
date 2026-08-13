@@ -16,9 +16,16 @@ export const horariosService = {
     return horariosRepository.agregarFranjaHoraria(datos);
   },
 
-  async eliminarFranjaHoraria(idFranja: string): Promise<{ turnosCancelados: number }> {
+  async eliminarFranjaHoraria(
+    idFranja: string,
+    idPeluqueriaAdmin: string
+  ): Promise<{ turnosCancelados: number }> {
     const franja = await horariosRepository.buscarFranjaPorId(idFranja);
     if (!franja) throw ErrorApi.noEncontrado('Franja horaria no encontrada');
+
+    if (franja.id_peluqueria !== idPeluqueriaAdmin) {
+      throw ErrorApi.noAutorizado('No podes gestionar franjas horarias de otra peluqueria');
+    }
 
     await horariosRepository.eliminarFranjaHoraria(idFranja);
 

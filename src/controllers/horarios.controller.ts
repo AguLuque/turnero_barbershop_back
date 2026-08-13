@@ -22,8 +22,12 @@ export const horariosController = {
   },
 
   async eliminarFranjaHoraria(req: Request, res: Response): Promise<void> {
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
     const { idFranja } = req.params;
-    const { turnosCancelados } = await horariosService.eliminarFranjaHoraria(idFranja);
+    const { turnosCancelados } = await horariosService.eliminarFranjaHoraria(
+      idFranja,
+      req.perfil.id_peluqueria
+    );
     res.json({ eliminado: true, turnosCancelados });
   },
 
