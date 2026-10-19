@@ -120,16 +120,18 @@ export const turnosRepository = {
     return data as Turno;
   },
 
-  async buscarPorTurnoFijoYFecha(idTurnoFijo: string, fecha: string): Promise<Turno | null> {
+  // Ids de las reglas fijas que ya tienen su turno creado en esa fecha, en
+  // cualquier estado (si se cancelo, no hay que volver a crearlo).
+  async buscarIdsTurnoFijoMaterializados(idPeluqueria: string, fecha: string): Promise<Set<string>> {
     const { data, error } = await supabase
       .from('turnos')
-      .select('*')
-      .eq('id_turno_fijo', idTurnoFijo)
+      .select('id_turno_fijo')
+      .eq('id_peluqueria', idPeluqueria)
       .eq('fecha', fecha)
-      .maybeSingle();
+      .not('id_turno_fijo', 'is', null);
 
-    if (error) throw new ErrorApi(`Error al buscar turno por regla fija y fecha: ${error.message}`);
-    return data as Turno | null;
+    if (error) throw new ErrorApi(`Error al buscar turnos fijos materializados: ${error.message}`);
+    return new Set((data ?? []).map((fila) => fila.id_turno_fijo as string));
   },
 
   async buscarUltimoPorTurnoFijo(idTurnoFijo: string): Promise<Turno | null> {

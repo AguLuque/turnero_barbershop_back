@@ -143,15 +143,29 @@ export const turnosFijosService = {
 
     if (reglasDelDia.length === 0) return;
 
+    // Todo lo que hace falta para decidir se trae de una vez (cantidad fija de
+    // consultas sin importar cuantos turnos fijos tenga el dia), en vez de
+    // consultar por cada regla. Esto corre cada vez que el admin abre un dia.
+    const [idsYaMaterializados, bloqueos, franjasDelDia] = await Promise.all([
+      turnosRepository.buscarIdsTurnoFijoMaterializados(idPeluqueria, fecha),
+      horariosRepository.buscarBloqueosPorFecha(idPeluqueria, fecha),
+      horariosRepository.buscarHorariosAtencion(idPeluqueria, diaSemana),
+    ]);
+    const horaCierreDelDia = obtenerHoraCierreDelDia(franjasDelDia);
+
+    const reglasPendientes = reglasDelDia.filter(
+      (regla) =>
+        !idsYaMaterializados.has(regla.id) &&
+        !bloqueos.some((bloqueo) => estaHoraDentroDeBloqueo(regla.hora, bloqueo, horaCierreDelDia))
+    );
+
+    // Caso habitual: el dia ya se habia abierto antes y no hay nada que crear.
+    if (reglasPendientes.length === 0) return;
+
     const peluqueria = await peluqueriasRepository.buscarPorId(idPeluqueria);
     const cobro = await serviciosService.resolverCobroTurno(peluqueria);
 
-    for (const regla of reglasDelDia) {
-      const yaExiste = await turnosRepository.buscarPorTurnoFijoYFecha(regla.id, fecha);
-      if (yaExiste) continue;
-
-      if (await horaEstaBloqueada(idPeluqueria, fecha, regla.hora)) continue;
-
+    for (const regla of reglasPendientes) {
       try {
         await turnosRepository.crear(
           {
