@@ -86,6 +86,35 @@ export const serviciosService = {
     return serviciosRepository.actualizar(idServicio, campos);
   },
 
+  // Recibe todos los ids de servicios de la peluqueria en el orden deseado
+  // (como quedan despues de arrastrarlos en el panel) y guarda esa posicion.
+  async reordenar(idPeluqueriaAdmin: string, idsEnOrden: unknown): Promise<Servicio[]> {
+    if (!Array.isArray(idsEnOrden) || !idsEnOrden.every((id) => typeof id === 'string')) {
+      throw ErrorApi.solicitudInvalida('ids debe ser una lista de ids de servicios');
+    }
+
+    const actuales = await serviciosRepository.listarPorPeluqueria(idPeluqueriaAdmin, false);
+    const idsActuales = new Set(actuales.map((s) => s.id));
+    const mismosServicios =
+      idsEnOrden.length === idsActuales.size &&
+      new Set(idsEnOrden).size === idsEnOrden.length &&
+      idsEnOrden.every((id) => idsActuales.has(id));
+
+    if (!mismosServicios) {
+      throw ErrorApi.conflicto('La lista de servicios cambio. Recargá la pantalla e intentá de nuevo.');
+    }
+
+    const ordenActual = new Map(actuales.map((s) => [s.id, s.orden]));
+    await Promise.all(
+      idsEnOrden
+        .map((id, posicion) => ({ id, posicion }))
+        .filter(({ id, posicion }) => ordenActual.get(id) !== posicion)
+        .map(({ id, posicion }) => serviciosRepository.actualizar(id, { orden: posicion }))
+    );
+
+    return serviciosRepository.listarPorPeluqueria(idPeluqueriaAdmin, false);
+  },
+
   // Los turnos ya reservados con este servicio conservan su precio y nombre
   // (la FK queda en null), asi que borrar no altera el historial.
   async eliminar(idServicio: string, idPeluqueriaAdmin: string): Promise<void> {

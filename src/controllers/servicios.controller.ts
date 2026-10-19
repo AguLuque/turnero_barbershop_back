@@ -25,6 +25,12 @@ export const serviciosController = {
     res.status(201).json({ servicio });
   },
 
+  async reordenar(req: Request, res: Response): Promise<void> {
+    if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
+    const servicios = await serviciosService.reordenar(req.perfil.id_peluqueria, req.body?.ids);
+    res.json({ servicios });
+  },
+
   async actualizar(req: Request, res: Response): Promise<void> {
     if (!req.perfil?.id_peluqueria) throw ErrorApi.noAutorizado();
     const { idServicio } = req.params;

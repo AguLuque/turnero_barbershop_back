@@ -123,6 +123,7 @@ Todas requieren rol `admin` o `superadmin`.
 | GET | `/admin` | Admin/Superadmin | Lista todos los servicios de la peluquería del admin, incluidos los desactivados. |
 | POST | `/` | Admin/Superadmin | Crea un servicio (`nombre`, `precio`, opcionales `activo` y `orden`). |
 | PATCH | `/:idServicio` | Admin/Superadmin | Edita nombre, precio, activo u orden de un servicio propio. |
+| PATCH | `/orden` | Admin/Superadmin | Guarda el orden de los servicios. Body: `{ ids: [...] }` con todos los ids en el orden deseado. |
 | DELETE | `/:idServicio` | Admin/Superadmin | Elimina un servicio propio (los turnos ya reservados conservan nombre y precio). |
 
 ### Perfiles — `/api/perfiles`

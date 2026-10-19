@@ -13,5 +13,7 @@ serviciosRouter.get('/', manejarAsync(serviciosController.listarActivos));
 // Panel admin: incluye los servicios desactivados.
 serviciosRouter.get('/admin', ...soloStaff, manejarAsync(serviciosController.listarParaAdmin));
 serviciosRouter.post('/', ...soloStaff, manejarAsync(serviciosController.crear));
+// Va antes de '/:idServicio' para que "orden" no se tome como un id.
+serviciosRouter.patch('/orden', ...soloStaff, manejarAsync(serviciosController.reordenar));
 serviciosRouter.patch('/:idServicio', ...soloStaff, manejarAsync(serviciosController.actualizar));
 serviciosRouter.delete('/:idServicio', ...soloStaff, manejarAsync(serviciosController.eliminar));
