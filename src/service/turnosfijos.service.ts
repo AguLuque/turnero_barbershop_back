@@ -2,6 +2,7 @@ import { turnosFijosRepository } from '../repository/turnosfijos.repository';
 import { turnosRepository } from '../repository/turnos.repository';
 import { horariosRepository } from '../repository/horarios.repository';
 import { peluqueriasRepository } from '../repository/peluquerias.repository';
+import { serviciosService } from './servicios.service';
 import { ErrorApi } from '../utils/errorApi';
 import { calcularPrimeraOcurrencia, correspondeSegunFrecuencia } from '../utils/frecuenciaTurnoFijo';
 import { obtenerFechaHoyArgentina } from '../utils/fechaHoraArgentina';
@@ -94,6 +95,7 @@ export const turnosFijosService = {
   async generarProximosTurnos(idPeluqueria: string): Promise<number> {
     const reglasActivas = await turnosFijosRepository.buscarPorPeluqueria(idPeluqueria);
     const peluqueria = await peluqueriasRepository.buscarPorId(idPeluqueria);
+    const cobro = await serviciosService.resolverCobroTurno(peluqueria);
 
     let generados = 0;
 
@@ -115,7 +117,7 @@ export const turnosFijosService = {
           creado_por: 'admin',
           id_turno_fijo: regla.id,
         },
-        peluqueria.precio_corte
+        cobro
       );
       generados++;
     }
@@ -139,7 +141,10 @@ export const turnosFijosService = {
         correspondeSegunFrecuencia(regla.fecha_inicio, regla.dia_semana, regla.frecuencia_dias, fecha)
     );
 
+    if (reglasDelDia.length === 0) return;
+
     const peluqueria = await peluqueriasRepository.buscarPorId(idPeluqueria);
+    const cobro = await serviciosService.resolverCobroTurno(peluqueria);
 
     for (const regla of reglasDelDia) {
       const yaExiste = await turnosRepository.buscarPorTurnoFijoYFecha(regla.id, fecha);
@@ -159,7 +164,7 @@ export const turnosFijosService = {
             creado_por: 'admin',
             id_turno_fijo: regla.id,
           },
-          peluqueria.precio_corte
+          cobro
         );
       } catch (error) {
         // Si dos peticiones concurrentes (ej. Strict Mode del front, o dos pestañas)

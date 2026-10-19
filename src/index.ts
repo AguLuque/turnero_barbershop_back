@@ -6,6 +6,7 @@ import { horariosRouter } from './routes/horarios.routes';
 import { perfilesRouter } from './routes/perfiles.routes';
 import { peluqueriasRouter } from './routes/peluquerias.routes';
 import { notificacionesRouter } from './routes/notificaciones.routes';
+import { serviciosRouter } from './routes/servicios.routes';
 
 export const rutasPrincipales = Router();
 
@@ -16,3 +17,4 @@ rutasPrincipales.use('/horarios', horariosRouter);
 rutasPrincipales.use('/perfiles', perfilesRouter);
 rutasPrincipales.use('/peluquerias', peluqueriasRouter);
 rutasPrincipales.use('/notificaciones', notificacionesRouter);
+rutasPrincipales.use('/servicios', serviciosRouter);

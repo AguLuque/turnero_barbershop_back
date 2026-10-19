@@ -2,6 +2,7 @@ import { turnosRepository } from '../repository/turnos.repository';
 import { peluqueriasRepository } from '../repository/peluquerias.repository';
 import { disponibilidadService } from './disponibilidad.service';
 import { turnosFijosService } from './turnosfijos.service';
+import { serviciosService } from './servicios.service';
 import { obtenerFechaHoyArgentina, obtenerHoraActualArgentina } from '../utils/fechaHoraArgentina';
 import { ErrorApi } from '../utils/errorApi';
 import { NuevoTurnoInput, Turno } from '../types/dominio.types';
@@ -18,7 +19,7 @@ function yaOcurrio(fecha: string, hora: string): boolean {
 }
 
 export const turnosService = {
-  async reservar(datos: NuevoTurnoInput): Promise<Turno> {
+  async reservar(datos: NuevoTurnoInput, idServicio?: string | null): Promise<Turno> {
     const peluqueria = await peluqueriasRepository.buscarPorId(datos.id_peluqueria);
 
     const slots = await disponibilidadService.calcularSlotsDelDia(
@@ -45,7 +46,8 @@ export const turnosService = {
       }
     }
 
-    return turnosRepository.crear(datos, peluqueria.precio_corte);
+    const cobro = await serviciosService.resolverCobroTurno(peluqueria, idServicio);
+    return turnosRepository.crear(datos, cobro);
   },
 
   async listarPorCliente(idCliente: string, idPeluqueria: string | null): Promise<Turno[]> {

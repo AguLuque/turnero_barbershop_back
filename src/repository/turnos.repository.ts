@@ -2,6 +2,7 @@ import { supabase } from '../config/db.config';
 import { ErrorApi } from '../utils/errorApi';
 import { NuevoTurnoInput, Turno } from '../types/dominio.types';
 import { obtenerFechaHoyArgentina, obtenerHoraActualArgentina } from '../utils/fechaHoraArgentina';
+import type { CobroTurno } from '../service/servicios.service';
 
 export const turnosRepository = {
   async buscarPorPeluqueriaYFecha(idPeluqueria: string, fecha: string): Promise<Turno[]> {
@@ -144,10 +145,10 @@ export const turnosRepository = {
     return data as Turno | null;
   },
 
-  async crear(datos: NuevoTurnoInput, precio: number): Promise<Turno> {
+  async crear(datos: NuevoTurnoInput, cobro: CobroTurno): Promise<Turno> {
     const { data, error } = await supabase
       .from('turnos')
-      .insert({ ...datos, precio })
+      .insert({ ...datos, ...cobro })
       .select('*')
       .single();
 

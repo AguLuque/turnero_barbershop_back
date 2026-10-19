@@ -5,7 +5,7 @@ import { NuevoTurnoInput } from '../types/dominio.types';
 
 export const turnosController = {
   async reservar(req: Request, res: Response): Promise<void> {
-    const { idPeluqueria, fecha, hora, nombreCliente, telefonoCliente } = req.body;
+    const { idPeluqueria, fecha, hora, nombreCliente, telefonoCliente, idServicio } = req.body;
     const esStaff = req.perfil?.rol === 'admin' || req.perfil?.rol === 'superadmin';
 
     if (esStaff && !req.perfil?.id_peluqueria) {
@@ -26,7 +26,11 @@ export const turnosController = {
       creado_por: esStaff ? 'admin' : 'cliente',
     };
 
-    const turno = await turnosService.reservar(datos);
+    if (idServicio !== undefined && idServicio !== null && typeof idServicio !== 'string') {
+      throw ErrorApi.solicitudInvalida('idServicio invalido');
+    }
+
+    const turno = await turnosService.reservar(datos, idServicio);
     res.status(201).json({ turno });
   },
 

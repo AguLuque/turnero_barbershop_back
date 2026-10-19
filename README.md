@@ -59,7 +59,8 @@ src/
 | `Perfil` | Usuario de Supabase Auth con rol (`cliente`, `admin`, `superadmin`), asociado a una peluquería. |
 | `HorarioAtencion` | Franja horaria de atención por día de la semana. |
 | `HorarioBloqueado` | Bloqueo puntual de agenda (ej. feriado, día no laborable). |
-| `Turno` | Reserva puntual: fecha, hora, cliente, estado (`confirmado`, `cancelado`, `completado`, `falto`). |
+| `Servicio` | Servicio que ofrece una peluquería (ej. "Corte", "Corte + barba") con su precio. Cada barbero los administra desde el panel. |
+| `Turno` | Reserva puntual: fecha, hora, cliente, servicio elegido (con copia de su nombre y precio al reservar), estado (`confirmado`, `cancelado`, `completado`, `falto`). |
 | `TurnoFijo` | Regla de turno recurrente (día de la semana + frecuencia en días) que genera `Turno`s reales. |
 
 ## Autenticación y autorización
@@ -77,7 +78,7 @@ Todas las rutas están montadas bajo el prefijo **`/api`**.
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/` | Requerida | Reserva un turno. Si lo crea un admin/superadmin, no queda asociado a un cliente registrado. |
+| POST | `/` | Requerida | Reserva un turno. Acepta `idServicio` opcional (si no se manda, se usa el primer servicio activo). Si lo crea un admin/superadmin, no queda asociado a un cliente registrado. |
 | GET | `/mis-turnos` | Requerida | Lista los turnos del cliente autenticado. |
 | GET | `/admin?fecha=` | Admin/Superadmin | Lista los turnos de la peluquería para una fecha dada. |
 | PATCH | `/:idTurno/cancelar` | Requerida | Cancela un turno (propio, o cualquiera si es admin). |
@@ -113,6 +114,16 @@ Todas requieren rol `admin` o `superadmin`.
 | POST | `/bloqueo` | Crea un bloqueo de agenda (cancela los turnos afectados). |
 | GET | `/bloqueo?idPeluqueria=` | Lista los bloqueos de una peluquería. |
 | DELETE | `/bloqueo/:idBloqueo` | Elimina un bloqueo. |
+
+### Servicios — `/api/servicios`
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| GET | `/?idPeluqueria=` | Pública | Lista los servicios activos de una peluquería (para elegir al reservar). |
+| GET | `/admin` | Admin/Superadmin | Lista todos los servicios de la peluquería del admin, incluidos los desactivados. |
+| POST | `/` | Admin/Superadmin | Crea un servicio (`nombre`, `precio`, opcionales `activo` y `orden`). |
+| PATCH | `/:idServicio` | Admin/Superadmin | Edita nombre, precio, activo u orden de un servicio propio. |
+| DELETE | `/:idServicio` | Admin/Superadmin | Elimina un servicio propio (los turnos ya reservados conservan nombre y precio). |
 
 ### Perfiles — `/api/perfiles`
 

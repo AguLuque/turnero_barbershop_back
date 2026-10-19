@@ -52,6 +52,8 @@ export interface Turno {
   fecha: string;
   hora: string;
   precio: number;
+  id_servicio: string | null;
+  nombre_servicio: string | null;
   estado: EstadoTurno;
   creado_por: CreadoPor;
   id_turno_fijo: string | null;
@@ -71,6 +73,16 @@ export interface TurnoFijo {
   frecuencia_dias: number;
   activo: boolean;
   fecha_inicio: string;
+  creado_en: string;
+}
+
+export interface Servicio {
+  id: string;
+  id_peluqueria: string;
+  nombre: string;
+  precio: number;
+  activo: boolean;
+  orden: number;
   creado_en: string;
 }
 
